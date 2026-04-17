@@ -1,0 +1,6 @@
+data/creditcard.csv
+data/processed_data.pkl
+data/logs.parquet
+models/*.pkl
+.venv/
+__pycache__/
