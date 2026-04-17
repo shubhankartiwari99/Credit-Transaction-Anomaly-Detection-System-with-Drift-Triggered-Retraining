@@ -1,0 +1,8 @@
+pandas
+scikit-learn
+imbalanced-learn
+joblib
+fastapi
+uvicorn
+pyarrow
+scipy
