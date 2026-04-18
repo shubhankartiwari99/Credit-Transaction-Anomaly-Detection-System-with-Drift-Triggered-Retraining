@@ -1,5 +1,6 @@
 backend/data/*
 !backend/data/README.md
+!backend/data/baseline_distribution.parquet
 backend/models/model_shadow.pkl
 backend/models/*.bak
 .venv/
