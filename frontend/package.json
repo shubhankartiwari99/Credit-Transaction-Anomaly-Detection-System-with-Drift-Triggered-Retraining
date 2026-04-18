@@ -10,7 +10,7 @@
     "next": "^14.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "recharts": "^2.8.0",
+    "recharts": "^2.12.0",
     "lucide-react": "^0.294.0"
   },
   "devDependencies": {
