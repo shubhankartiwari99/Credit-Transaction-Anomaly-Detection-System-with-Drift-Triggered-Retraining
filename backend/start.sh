@@ -1,8 +1,10 @@
 #!/bin/bash
 echo "=== Testing imports ==="
-python -c "from api.main import app; print('Import OK')"
-if [ $? -ne 0 ]; then
-    echo "=== Import failed, showing full error above ==="
+python -c "from api.main import app; print('Import OK')" 2>&1
+EXIT_CODE=$?
+echo "=== Exit code: $EXIT_CODE ==="
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "=== Import failed ==="
     exit 1
 fi
 echo "=== Starting server ==="
