@@ -1,6 +1,8 @@
-data/creditcard.csv
-data/processed_data.pkl
-data/logs.parquet
-models/*.pkl
+backend/data/creditcard.csv
+backend/data/processed_data.pkl
+backend/data/logs.parquet
+backend/models/*.pkl
 .venv/
 __pycache__/
+frontend/.next/
+frontend/node_modules/
