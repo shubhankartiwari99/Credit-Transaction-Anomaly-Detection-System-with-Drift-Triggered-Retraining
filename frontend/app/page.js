@@ -99,7 +99,7 @@ async function fetchJson(url) {
 }
 
 export default function FraudDashboard() {
-  console.log('API URL:', process.env.NEXT_PUBLIC_API_URL)
+  const [metrics, setMetrics] = useState({
     amountKl: 0,
     amountPsi: 0,
     confidenceKl: 0,
