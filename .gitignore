@@ -6,3 +6,4 @@ backend/models/*.pkl
 __pycache__/
 frontend/.next/
 frontend/node_modules/
+.tmp.driveupload/
