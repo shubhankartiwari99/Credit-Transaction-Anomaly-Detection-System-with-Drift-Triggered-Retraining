@@ -1,5 +1,6 @@
 import joblib
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
@@ -39,6 +40,11 @@ def should_retrain(drift_report):
     return drift_report['amount_psi'] > 0.2 or drift_report['confidence_kl'] > 0.1
 
 def retrain_model():
+    # Guard: processed training data may not be present on the server
+    if not DATA_PATH.exists():
+        print("WARNING: processed_data.pkl not found, skipping retrain")
+        return {"skipped": True, "reason": "training data not available on server"}
+
     # Retrain on existing processed data
     X_train, y_train, X_val, y_val, X_test, y_test, scaler = joblib.load(DATA_PATH)
 
@@ -59,6 +65,7 @@ def retrain_model():
         "status": "shadow"
     })
     save_registry(registry)
+    return {"skipped": False, "version": new_version}
 
 def shadow_deploy():
     # Shadow model is already saved, just confirm
@@ -80,9 +87,12 @@ def trigger_retrain_if_needed():
         print("No retrain needed")
 
 def force_retrain():
-    retrain_model()
+    result = retrain_model()
+    if result and result.get("skipped"):
+        return result
     shadow_deploy()
     log_retrain_event("Manual retrain")
+    return result or {"skipped": False}
 
 def promote_shadow():
     if not SHADOW_MODEL_PATH.exists():

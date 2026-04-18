@@ -110,10 +110,14 @@ def metrics():
 
 @app.post("/retrain")
 def retrain():
-    from retraining.retrain_trigger import force_retrain
+    try:
+        from retraining.retrain_trigger import force_retrain
 
-    force_retrain()
-    return {"message": "Retraining triggered"}
+        result = force_retrain()
+        return {"status": "success", "result": result}
+    except Exception as e:
+        # Return 200 with error info so CORS headers are included
+        return {"status": "error", "message": str(e)}
 
 @app.post("/promote")
 def promote():
