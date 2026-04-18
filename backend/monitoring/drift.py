@@ -2,9 +2,28 @@ import numpy as np
 from scipy.stats import entropy
 import joblib
 from .logger import get_logs
-import os
+from pathlib import Path
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_PATH = BASE_DIR / "data" / "processed_data.pkl"
+MODEL_PATH = BASE_DIR / "models" / "model.pkl"
+
+
+def empty_drift_report():
+    return {
+        "amount_psi": 0.0,
+        "amount_kl": 0.0,
+        "confidence_psi": 0.0,
+        "confidence_kl": 0.0,
+    }
+
+
+def get_amount_series(values):
+    if hasattr(values, "columns"):
+        if "Amount" in values.columns:
+            return values["Amount"].to_numpy()
+        return values.iloc[:, 28].to_numpy()
+    return np.asarray(values)[:, 28]
 
 def calculate_psi(expected, actual, bins=10):
     """Calculate Population Stability Index"""
@@ -33,28 +52,35 @@ def calculate_kl(expected, actual, bins=10):
 
 def compute_drift():
     """Compute drift scores for Amount and confidence distributions"""
-    # Load baseline data
-    data_path = os.path.join(BASE_DIR, 'data', 'processed_data.pkl')
-    model_path = os.path.join(BASE_DIR, 'models', 'model.pkl')
-    X_train, _, X_val, y_val, _, _, _ = joblib.load(data_path)
-    model = joblib.load(model_path)
+    if not DATA_PATH.exists() or not MODEL_PATH.exists():
+        return empty_drift_report()
 
-    baseline_amount = X_train[:, 28]  # Amount column
+    try:
+        X_train, _, X_val, y_val, _, _, _ = joblib.load(DATA_PATH)
+        model = joblib.load(MODEL_PATH)
+    except Exception:
+        return empty_drift_report()
+
+    baseline_amount = get_amount_series(X_train)
     baseline_confidence = model.predict_proba(X_val)[:, 1]  # Confidence on val set
 
     # Load logs
     logs_df = get_logs()
-    if logs_df.empty:
-        return {
-            'amount_psi': 0.0,
-            'amount_kl': 0.0,
-            'confidence_psi': 0.0,
-            'confidence_kl': 0.0
-        }
+    if logs_df.empty or "features" not in logs_df or "confidence" not in logs_df:
+        return empty_drift_report()
 
     # Extract current data from logs
-    current_amount = np.array([features[28] for features in logs_df['features']])
-    current_confidence = logs_df['confidence'].values
+    current_amount = np.array(
+        [
+            features[28]
+            for features in logs_df["features"]
+            if isinstance(features, (list, tuple, np.ndarray)) and len(features) > 28
+        ]
+    )
+    current_confidence = logs_df["confidence"].dropna().values
+
+    if current_amount.size == 0 or current_confidence.size == 0:
+        return empty_drift_report()
 
     # Compute drift metrics
     amount_psi = calculate_psi(baseline_amount, current_amount)
@@ -63,8 +89,8 @@ def compute_drift():
     confidence_kl = calculate_kl(baseline_confidence, current_confidence)
 
     return {
-        'amount_psi': float(amount_psi),
-        'amount_kl': float(amount_kl),
-        'confidence_psi': float(confidence_psi),
-        'confidence_kl': float(confidence_kl)
+        "amount_psi": float(amount_psi),
+        "amount_kl": float(amount_kl),
+        "confidence_psi": float(confidence_psi),
+        "confidence_kl": float(confidence_kl),
     }

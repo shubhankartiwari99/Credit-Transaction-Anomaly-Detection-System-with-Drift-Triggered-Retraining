@@ -1,11 +1,61 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 LOG_FILE = BASE_DIR / "data" / "logs.parquet"
+
+
+def seed_logs_if_empty():
+    import numpy as np
+    import pandas as pd
+
+    if LOG_FILE.exists():
+        try:
+            if not pd.read_parquet(LOG_FILE).empty:
+                return
+        except Exception:
+            pass
+
+    print("==> Seeding logs with sample predictions...")
+    LOG_FILE.parent.mkdir(exist_ok=True)
+
+    rng = np.random.default_rng(42)
+    base_time = datetime.utcnow() - timedelta(hours=2)
+    rows = []
+    for index in range(50):
+        amount = float(rng.exponential(80.0))
+        event_time = float(index * 120.0)
+        features = rng.normal(0.0, 1.0, 30).tolist()
+        features[28] = amount
+        features[29] = event_time
+
+        prediction = int(rng.choice([0, 1], p=[0.96, 0.04]))
+        if prediction == 1:
+            confidence = float(rng.uniform(0.75, 0.98))
+        else:
+            confidence = float(rng.uniform(0.01, 0.18))
+
+        shadow_prediction = prediction if rng.random() < 0.85 else 1 - prediction
+        shadow_confidence = float(np.clip(confidence + rng.normal(0.0, 0.08), 0.01, 0.99))
+
+        rows.append(
+            {
+                "timestamp": base_time + timedelta(minutes=index * 2),
+                "features": features,
+                "prediction": prediction,
+                "confidence": confidence,
+                "shadow_prediction": shadow_prediction,
+                "shadow_confidence": shadow_confidence,
+            }
+        )
+
+    pd.DataFrame(rows).to_parquet(LOG_FILE, index=False)
+    print("==> Seeded 50 sample log entries")
 
 
 @asynccontextmanager
@@ -14,6 +64,7 @@ async def lifespan(app: FastAPI):
 
     print("==> Loading model...")
     get_model()
+    seed_logs_if_empty()
     print("==> Model loaded, API ready")
     yield
 
@@ -22,6 +73,12 @@ app = FastAPI(
     lifespan=lifespan,
     title="Fraud Detection API",
     description="API for detecting credit card fraud",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 class TransactionFeatures(BaseModel):
