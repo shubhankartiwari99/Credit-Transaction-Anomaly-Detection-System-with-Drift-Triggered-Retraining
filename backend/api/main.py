@@ -1,6 +1,4 @@
 from contextlib import asynccontextmanager
-import subprocess
-import sys
 
 from fastapi import FastAPI
 from pathlib import Path
@@ -8,39 +6,15 @@ from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 LOG_FILE = BASE_DIR / "data" / "logs.parquet"
-RAW_DATA_FILE = BASE_DIR / "data" / "creditcard.csv"
-PROCESSED_DATA_FILE = BASE_DIR / "data" / "processed_data.pkl"
-MODEL_FILE = BASE_DIR / "models" / "model.pkl"
-
-
-def _run_backend_script(script_path: Path):
-    subprocess.run([sys.executable, str(script_path)], cwd=BASE_DIR, check=True)
-
-
-def ensure_runtime_artifacts():
-    if MODEL_FILE.exists():
-        return
-
-    BASE_DIR.joinpath("models").mkdir(exist_ok=True)
-
-    if not PROCESSED_DATA_FILE.exists():
-        if not RAW_DATA_FILE.exists():
-            raise RuntimeError(
-                f"Missing training data at {RAW_DATA_FILE}. "
-                "Add creditcard.csv before starting the API without a prebuilt model."
-            )
-        print("==> processed_data.pkl not found, preprocessing now...")
-        _run_backend_script(BASE_DIR / "training" / "preprocess.py")
-        print("==> Preprocessing complete")
-
-    print("==> model.pkl not found, training now...")
-    _run_backend_script(BASE_DIR / "training" / "train.py")
-    print("==> Training complete")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ensure_runtime_artifacts()
+    from api.predict import get_model
+
+    print("==> Loading model...")
+    get_model()
+    print("==> Model loaded, API ready")
     yield
 
 

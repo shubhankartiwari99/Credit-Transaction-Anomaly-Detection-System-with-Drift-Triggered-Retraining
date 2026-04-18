@@ -1,7 +1,7 @@
 backend/data/*
 !backend/data/README.md
-backend/models/*.pkl
-backend/models/model_registry.json
+backend/models/model_shadow.pkl
+backend/models/*.bak
 .venv/
 __pycache__/
 frontend/.next/

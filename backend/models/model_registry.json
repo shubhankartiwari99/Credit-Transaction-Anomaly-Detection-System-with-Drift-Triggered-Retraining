@@ -1,0 +1,11 @@
+{
+  "versions": [
+    {
+      "version": 1,
+      "trained_at": "2026-04-19 00:19:51.764730",
+      "auc_pr": 0.831,
+      "trigger_reason": "baseline",
+      "status": "production"
+    }
+  ]
+}
