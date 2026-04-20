@@ -64,7 +64,7 @@ The frontend reads the API base URL from `NEXT_PUBLIC_API_BASE_URL`.
 
 ## Demo
 
-<video src="./demo-fraud-ml.mp4" type="video/mp4" autoplay loop muted playsinline></video>
+![Demo](./demo-fraud-ml.gif)
 
 ## API Endpoints
 
