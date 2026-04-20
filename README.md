@@ -57,6 +57,15 @@ The frontend reads the API base URL from `NEXT_PUBLIC_API_BASE_URL`.
 - Railway: set the project root directory to `backend/`.
 - Vercel: set the project root directory to `frontend/`.
 
+## Live Deployment
+
+- **Backend**: https://credit-transaction-anomaly-detection.onrender.com
+- **Frontend**: https://credit-transaction-anomaly-detectio.vercel.app
+
+## Demo
+
+A demonstration video is available: `demo-fraud-ml.mp4`
+
 ## API Endpoints
 
 - `POST /predict`
