@@ -1,3 +1,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.0);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px rgba(251, 113, 133, 0.25);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+.animate-fade-in-up-1 { animation-delay: 0.05s; }
+.animate-fade-in-up-2 { animation-delay: 0.1s; }
+.animate-fade-in-up-3 { animation-delay: 0.15s; }
+.animate-fade-in-up-4 { animation-delay: 0.2s; }
+.animate-fade-in-up-5 { animation-delay: 0.25s; }
+.animate-fade-in-up-6 { animation-delay: 0.3s; }
+.animate-fade-in-up-7 { animation-delay: 0.35s; }
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(30,41,59,0.5) 25%, rgba(51,65,85,0.5) 50%, rgba(30,41,59,0.5) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.75rem;
+}
+
+.pulse-glow-danger {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

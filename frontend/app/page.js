@@ -39,6 +39,7 @@ function formatTimestamp(value) {
   return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   })
 }
 
@@ -110,7 +111,8 @@ export default function FraudDashboard() {
   const [driftData, setDriftData] = useState({ drift_score: 0, status: 'LOW', threshold: 0.1, last_updated: null })
   const [driftHistory, setDriftHistory] = useState([])
   const [retrainStatus, setRetrainStatus] = useState({ status: 'idle', reason: null, new_model_version: null, timestamp: null, top_shifted_feature: null })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [retraining, setRetraining] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [errors, setErrors] = useState([])
 
@@ -186,8 +188,13 @@ export default function FraudDashboard() {
   }, [])
 
   const handleRetrain = async () => {
-    await fetch(`${API_BASE}/retrain`, { method: 'POST' })
-    fetchData()
+    setRetraining(true)
+    try {
+      await fetch(`${API_BASE}/retrain`, { method: 'POST' })
+      await fetchData()
+    } finally {
+      setRetraining(false)
+    }
   }
 
   const handlePromote = async () => {
@@ -254,10 +261,10 @@ export default function FraudDashboard() {
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 md:px-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/40 md:flex-row md:items-end md:justify-between">
+        <div className="animate-fade-in-up mb-6 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/90 to-slate-950/90 p-6 shadow-2xl shadow-cyan-500/5 backdrop-blur-sm md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-cyan-300/70">
-              <Activity size={14} />
+              <Activity size={14} className="animate-pulse" />
               Fraud Operations Console
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-50 md:text-4xl">Fraud ML System</h1>
@@ -273,13 +280,14 @@ export default function FraudDashboard() {
             </span>
             <button
               onClick={handleRetrain}
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-400"
+              disabled={retraining}
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <RefreshCw size={16} /> Retrain
+              <RefreshCw size={16} className={retraining ? 'animate-spin' : ''} /> {retraining ? 'Retraining...' : 'Retrain'}
             </button>
             <button
               onClick={handlePromote}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/10"
             >
               <Zap size={16} /> Promote
             </button>
@@ -287,19 +295,19 @@ export default function FraudDashboard() {
         </div>
 
         <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className={`animate-fade-in-up animate-fade-in-up-1 rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] ${fraudRate > 5 ? 'border-rose-500/40 bg-gradient-to-br from-rose-950/40 to-slate-900/70 pulse-glow-danger' : 'border-slate-800 bg-slate-900/70'}`}>
             <div className="text-sm text-slate-400">Observed Fraud Rate</div>
             <div className="mt-3 text-4xl font-semibold text-rose-200">{fraudRate}%</div>
             <div className="mt-2 text-xs text-slate-500">{predictions.length} recent predictions sampled</div>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="animate-fade-in-up animate-fade-in-up-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700">
             <div className="text-sm text-slate-400">Registry Versions</div>
             <div className="mt-3 text-4xl font-semibold text-cyan-100">{registryCount}</div>
             <div className="mt-2 text-xs text-slate-500">
               {registryCount > 0 ? `Latest: v${registrySummary[registryCount - 1].version}` : 'No versions returned'}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="animate-fade-in-up animate-fade-in-up-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700">
             <div className="text-sm text-slate-400">Latest Confidence</div>
             <div className="mt-3 text-4xl font-semibold text-amber-100">
               {latestPrediction ? `${(latestPrediction.confidence * 100).toFixed(1)}%` : 'n/a'}
@@ -308,12 +316,14 @@ export default function FraudDashboard() {
               {latestPrediction ? `Recorded at ${latestPrediction.label}` : 'Waiting for prediction data'}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="animate-fade-in-up animate-fade-in-up-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700">
             <div className="text-sm text-slate-400">Last Sync</div>
             <div className="mt-3 text-2xl font-semibold text-slate-100">
               {lastUpdated ? formatTimestamp(lastUpdated.toISOString()) : 'pending'}
             </div>
-            <div className="mt-2 text-xs text-slate-500">{loading ? 'Refreshing now' : 'Auto-refresh every 30s'}</div>
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+              {loading ? (<><span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span> Refreshing now</>) : 'Auto-refresh every 30s'}
+            </div>
           </div>
         </div>
 
@@ -327,7 +337,7 @@ export default function FraudDashboard() {
           </div>
         )}
 
-        <div className="mb-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="animate-fade-in-up animate-fade-in-up-5 mb-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
             <div className="mb-5 flex items-center justify-between">
               <div>
@@ -429,7 +439,7 @@ export default function FraudDashboard() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+        <div className="animate-fade-in-up animate-fade-in-up-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
             <h2 className="mb-4 text-lg font-semibold text-slate-100">System Health</h2>
             
@@ -534,7 +544,7 @@ export default function FraudDashboard() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="animate-fade-in-up animate-fade-in-up-7 mt-6 grid gap-6 lg:grid-cols-2">
           {/* Drift History Chart */}
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
             <div className="mb-5 flex items-center justify-between">
@@ -548,7 +558,7 @@ export default function FraudDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={driftHistory}>
                     <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                    <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} interval={'preserveStartEnd'} />
                     <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{
@@ -610,7 +620,7 @@ export default function FraudDashboard() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
+        <div className="animate-fade-in-up mt-6 rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-100">Shadow vs Production Comparison</h2>
@@ -623,7 +633,7 @@ export default function FraudDashboard() {
                 <BarChart data={predictionTrendData.slice(-12)}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                   <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 100]} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 'auto']} />
                   <Tooltip
                     contentStyle={{
                       background: '#020617',
@@ -647,6 +657,16 @@ export default function FraudDashboard() {
             )}
           </div>
         </div>
+
+        <footer className="mt-10 border-t border-slate-800/60 pt-6 pb-4 text-center">
+          <p className="text-xs text-slate-500">
+            Fraud ML System · Drift-Triggered Retraining Pipeline · Built by{' '}
+            <a href="https://github.com/shubhankartiwari99" target="_blank" rel="noopener noreferrer" className="text-cyan-400/70 hover:text-cyan-300 transition">
+              Shubhankar Tiwari
+            </a>
+          </p>
+          <p className="mt-1 text-[11px] text-slate-600">KL Divergence · PSI · Shadow Deployment · Model Registry · Cooldown Logic</p>
+        </footer>
       </div>
     </div>
   )
