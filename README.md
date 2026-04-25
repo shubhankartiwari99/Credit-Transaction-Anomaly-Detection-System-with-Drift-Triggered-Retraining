@@ -1,5 +1,24 @@
 # Credit Transaction Anomaly Detection System with Drift-Triggered Retraining
 
+## 🧠 What This System Does
+This is a production-style ML system that:
+- Detects anomalous credit card transactions
+- Monitors real-time data drift using distributional metrics (KL divergence)
+- Automatically triggers retraining when drift exceeds a threshold
+- Maintains a model registry with version control and promotion workflows
+---
+## ⚙️ Core Insight
+Traditional ML systems degrade silently under data drift.
+This system treats drift as a first-class signal, enabling:
+- proactive retraining
+- continuous reliability
+- observable model behavior
+---
+## 🔍 System Flow
+Input → Prediction → Drift Monitoring → Retraining Trigger → Model Promotion
+
+---
+
 This repository is organized as a monorepo with separate deployment roots for the FastAPI backend and the Next.js frontend.
 
 ## Structure

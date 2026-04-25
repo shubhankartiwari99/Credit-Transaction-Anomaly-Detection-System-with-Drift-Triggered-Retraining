@@ -9,7 +9,22 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = BASE_DIR / "data" / "baseline_distribution.parquet"
 DATA_PATH = BASE_DIR / "data" / "processed_data.pkl"
 MODEL_PATH = BASE_DIR / "models" / "model.pkl"
+DRIFT_HISTORY_PATH = BASE_DIR / "data" / "drift_history.json"
 
+def load_drift_history():
+    import json
+    if DRIFT_HISTORY_PATH.exists():
+        try:
+            with DRIFT_HISTORY_PATH.open("r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+def save_drift_history(history):
+    import json
+    with DRIFT_HISTORY_PATH.open("w") as f:
+        json.dump(history, f, indent=2, default=str)
 
 def empty_drift_report():
     return {
@@ -113,9 +128,28 @@ def compute_drift():
     confidence_psi = calculate_psi(baseline_confidence, current_confidence)
     confidence_kl = calculate_kl(baseline_confidence, current_confidence)
 
-    return {
+    # Feature Shift calculation
+    feature_shift = abs(current_amount.mean() - baseline_amount.mean())
+    top_shifted_feature = "Amount" if feature_shift > 0.05 else "None"
+
+    report = {
         "amount_psi": float(amount_psi),
         "amount_kl": float(amount_kl),
         "confidence_psi": float(confidence_psi),
         "confidence_kl": float(confidence_kl),
+        "top_shifted_feature": top_shifted_feature,
+        "feature_shift_magnitude": float(feature_shift),
     }
+
+    # Save to history
+    from datetime import datetime
+    drift_score = float(max(amount_psi, confidence_kl))
+    history = load_drift_history()
+    history.append({
+        "timestamp": datetime.now().isoformat(),
+        "drift_score": drift_score
+    })
+    # Keep last 100 entries to prevent file bloat
+    save_drift_history(history[-100:])
+
+    return report

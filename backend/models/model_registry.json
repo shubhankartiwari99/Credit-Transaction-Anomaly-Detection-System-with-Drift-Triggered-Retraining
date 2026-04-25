@@ -6,6 +6,20 @@
       "auc_pr": 0.831,
       "trigger_reason": "baseline",
       "status": "production"
+    },
+    {
+      "version": 2,
+      "trained_at": "2026-04-25 23:01:11.009555",
+      "auc_pr": null,
+      "trigger_reason": "manual",
+      "status": "shadow"
+    },
+    {
+      "version": 3,
+      "trained_at": "2026-04-25 23:01:22.172741",
+      "auc_pr": null,
+      "trigger_reason": "manual",
+      "status": "shadow"
     }
   ]
 }

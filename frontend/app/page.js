@@ -107,6 +107,9 @@ export default function FraudDashboard() {
   })
   const [registry, setRegistry] = useState([])
   const [predictions, setPredictions] = useState([])
+  const [driftData, setDriftData] = useState({ drift_score: 0, status: 'LOW', threshold: 0.1, last_updated: null })
+  const [driftHistory, setDriftHistory] = useState([])
+  const [retrainStatus, setRetrainStatus] = useState({ status: 'idle', reason: null, new_model_version: null, timestamp: null, top_shifted_feature: null })
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [errors, setErrors] = useState([])
@@ -117,9 +120,12 @@ export default function FraudDashboard() {
       fetchJson(`${API_BASE}/metrics`),
       fetchJson(`${API_BASE}/registry`),
       fetchJson(`${API_BASE}/predictions?limit=100`),
+      fetchJson(`${API_BASE}/drift`),
+      fetchJson(`${API_BASE}/retrain/status`),
+      fetchJson(`${API_BASE}/drift/history`),
     ])
 
-    const [metricsResult, registryResult, predictionsResult] = results
+    const [metricsResult, registryResult, predictionsResult, driftResult, retrainResult, historyResult] = results
     const nextErrors = []
 
     if (metricsResult.status === 'fulfilled') {
@@ -138,6 +144,30 @@ export default function FraudDashboard() {
       setPredictions(normalizePredictions(predictionsResult.value))
     } else {
       nextErrors.push(`Predictions: ${predictionsResult.reason.message}`)
+    }
+
+    if (driftResult.status === 'fulfilled') {
+      setDriftData(driftResult.value)
+    } else {
+      nextErrors.push(`Drift: ${driftResult.reason.message}`)
+    }
+
+    if (retrainResult.status === 'fulfilled') {
+      setRetrainStatus(retrainResult.value)
+    } else {
+      nextErrors.push(`Retrain Status: ${retrainResult.reason.message}`)
+    }
+
+    if (historyResult.status === 'fulfilled') {
+      const historyFormatted = Array.isArray(historyResult.value) 
+        ? historyResult.value.map((h, i) => ({
+            label: formatTimestamp(h.timestamp),
+            score: Number(h.drift_score?.toFixed(3))
+          }))
+        : []
+      setDriftHistory(historyFormatted)
+    } else {
+      nextErrors.push(`Drift History: ${historyResult.reason.message}`)
     }
 
     if (nextErrors.length > 0) {
@@ -200,6 +230,20 @@ export default function FraudDashboard() {
       })),
     [registry]
   )
+
+  const confidenceDistribution = useMemo(() => {
+    const bins = Array(10).fill(0)
+    predictions.forEach(p => {
+      if (p.confidence != null) {
+        const binIndex = Math.min(Math.floor(p.confidence * 10), 9)
+        bins[binIndex]++
+      }
+    })
+    return bins.map((count, i) => ({
+      range: `${i * 10}-${(i + 1) * 10}%`,
+      count
+    }))
+  }, [predictions])
 
   const driftStatus = getDriftStatus(metrics)
 
@@ -387,19 +431,51 @@ export default function FraudDashboard() {
 
         <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <h2 className="mb-4 text-lg font-semibold text-slate-100">Drift Snapshot</h2>
-            <div className="space-y-3">
-              {[
-                { label: 'Amount KL', value: metrics.amountKl },
-                { label: 'Amount PSI', value: metrics.amountPsi },
-                { label: 'Confidence KL', value: metrics.confidenceKl },
-                { label: 'Confidence PSI', value: metrics.confidencePsi },
-              ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
-                  <div className="text-sm text-slate-400">{item.label}</div>
-                  <div className="mt-1 text-2xl font-semibold text-slate-100">{item.value.toFixed(3)}</div>
+            <h2 className="mb-4 text-lg font-semibold text-slate-100">System Health</h2>
+            
+            {/* Drift Card */}
+            <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div className="mb-2 text-sm text-slate-400">Real-Time Drift</div>
+              <div className="flex items-end gap-4">
+                <div>
+                  <div className="text-3xl font-semibold text-slate-100">{driftData?.drift_score?.toFixed(3)}</div>
+                  <div className="text-xs text-slate-500 mt-1">Threshold: {driftData?.threshold}</div>
                 </div>
-              ))}
+                <div className={`mb-1 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wider ${driftData?.status === 'HIGH' ? 'bg-rose-500/20 text-rose-300 border border-rose-400/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'}`}>
+                  {driftData?.status === 'HIGH' ? '🔴 HIGH' : '🟢 LOW'}
+                </div>
+              </div>
+            </div>
+
+            {/* Retrain Transparency Panel */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div className="mb-2 text-sm text-slate-400">Retrain Pipeline</div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Last Status</span>
+                  <span className={`font-semibold ${retrainStatus?.status === 'failed' ? 'text-rose-400' : 'text-emerald-400 uppercase'}`}>
+                    {retrainStatus?.status || 'IDLE'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Trigger Reason</span>
+                  <span className="text-slate-200">{retrainStatus?.reason || 'None'}</span>
+                </div>
+                {retrainStatus?.top_shifted_feature && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Top Shifted Feature</span>
+                    <span className="text-amber-200">{retrainStatus.top_shifted_feature}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-slate-500">New Model</span>
+                  <span className="text-slate-200">{retrainStatus?.new_model_version || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Last Run</span>
+                  <span className="text-slate-200">{retrainStatus?.timestamp ? formatTimestamp(retrainStatus.timestamp) : 'N/A'}</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -407,37 +483,127 @@ export default function FraudDashboard() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-100">Model Registry</h2>
-                <p className="mt-1 text-sm text-slate-400">Version and promotion state returned by the backend</p>
+                <p className="mt-1 text-sm text-slate-400">Version control and promotion workflow</p>
               </div>
             </div>
+            
+            <div className="mb-4">
+              <div className="text-sm text-slate-400 mb-2">Active Production Model</div>
+              {registrySummary.filter(r => r.status === 'production').map(item => (
+                <div key={item.version} className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+                  <div className="text-lg font-semibold text-emerald-200">v{item.version}</div>
+                  <div className="text-xs text-emerald-200/70">Trigger: {item.triggerReason}</div>
+                </div>
+              ))}
+              {registrySummary.filter(r => r.status === 'production').length === 0 && (
+                <div className="text-sm text-slate-500 italic">No active production model found</div>
+              )}
+            </div>
+
             <div className="space-y-3">
-              {registrySummary.length > 0 ? (
-                registrySummary.map((item) => (
+              <div className="text-sm text-slate-400 mb-2">Available Candidate Models</div>
+              {registrySummary.filter(r => r.status !== 'production').length > 0 ? (
+                registrySummary.filter(r => r.status !== 'production').map((item) => (
                   <div
                     key={item.version}
-                    className="grid gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-4 md:grid-cols-[auto_1fr_auto]"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-4"
                   >
-                    <div className="text-lg font-semibold text-slate-100">v{item.version}</div>
                     <div>
-                      <div className="text-sm text-slate-300">{item.triggerReason}</div>
-                      <div className="mt-1 text-xs text-slate-500">{item.trainedLabel}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-semibold text-slate-100">v{item.version}</span>
+                        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400 border border-slate-700">{item.status}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">Trigger: {item.triggerReason} • {item.trainedLabel}</div>
                     </div>
-                    <div
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        item.status === 'production'
-                          ? 'border border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
-                          : item.status === 'shadow'
-                            ? 'border border-amber-400/30 bg-amber-500/10 text-amber-200'
-                            : 'border border-slate-700 bg-slate-800 text-slate-300'
-                      }`}
-                    >
-                      {item.status}
-                    </div>
+                    {item.status === 'shadow' && (
+                      <button
+                        onClick={handlePromote}
+                        className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+                      >
+                        Promote v{item.version}
+                      </button>
+                    )}
                   </div>
                 ))
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-sm text-slate-500">
-                  No registry versions were returned by the API.
+                  No candidate models available.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Drift History Chart */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-100">Drift Score Over Time</h2>
+                <p className="mt-1 text-sm text-slate-400">Evolution of data distribution divergence</p>
+              </div>
+            </div>
+            <div className="h-72">
+              {driftHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={driftHistory}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                    <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: '#020617',
+                        border: '1px solid rgba(148, 163, 184, 0.18)',
+                        borderRadius: '14px',
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke={CHART_COLORS.danger}
+                      strokeWidth={3}
+                      dot={false}
+                      name="Drift Score"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
+                  No drift history available.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Confidence Distribution Panel */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-100">Confidence Distribution</h2>
+                <p className="mt-1 text-sm text-slate-400">Density of production model probability scores</p>
+              </div>
+            </div>
+            <div className="h-72">
+              {predictions.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={confidenceDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+                    <XAxis dataKey="range" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: '#020617',
+                        border: '1px solid rgba(148, 163, 184, 0.18)',
+                        borderRadius: '14px',
+                      }}
+                      cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                    />
+                    <Bar dataKey="count" name="Predictions" fill={CHART_COLORS.calm} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
+                  No predictions available yet.
                 </div>
               )}
             </div>

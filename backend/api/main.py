@@ -108,16 +108,43 @@ def metrics():
     drift_scores = compute_drift()
     return {"drift_scores": drift_scores}
 
+@app.get("/drift")
+def get_drift():
+    from monitoring.drift import compute_drift
+    from datetime import datetime
+
+    report = compute_drift()
+    drift_score = float(max(report.get("amount_psi", 0), report.get("confidence_kl", 0)))
+    threshold = 0.1
+    status = "HIGH" if drift_score > threshold else "LOW"
+
+    return {
+        "drift_score": drift_score,
+        "status": status,
+        "threshold": threshold,
+        "last_updated": datetime.now().isoformat()
+    }
+
+@app.get("/drift/history")
+def get_drift_history():
+    from monitoring.drift import load_drift_history
+    return load_drift_history()
+
 @app.post("/retrain")
 def retrain():
     try:
         from retraining.retrain_trigger import force_retrain
 
         result = force_retrain()
-        return {"status": "success", "result": result}
+        return result
     except Exception as e:
         # Return 200 with error info so CORS headers are included
         return {"status": "error", "message": str(e)}
+
+@app.get("/retrain/status")
+def retrain_status():
+    from retraining.retrain_trigger import load_retrain_status
+    return load_retrain_status()
 
 @app.post("/promote")
 def promote():
@@ -146,3 +173,24 @@ def get_predictions(limit: int = 100):
 @app.get("/")
 def root():
     return {"message": "Fraud Detection API is running"}
+
+@app.get("/health")
+def health():
+    from monitoring.drift import compute_drift
+    from retraining.retrain_trigger import load_registry
+
+    report = compute_drift()
+    drift_score = float(max(report.get("amount_psi", 0), report.get("confidence_kl", 0)))
+    drift_status = "high" if drift_score > 0.1 else "low"
+
+    registry = load_registry()
+    active_version = "v1"
+    for v in registry.get("versions", []):
+        if v.get("status") == "production":
+            active_version = f"v{v.get('version')}"
+
+    return {
+        "status": "ok",
+        "model": active_version,
+        "drift": drift_status
+    }

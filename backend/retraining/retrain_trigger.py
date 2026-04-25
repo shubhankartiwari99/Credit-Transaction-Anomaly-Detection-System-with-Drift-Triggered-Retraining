@@ -11,6 +11,18 @@ MODEL_REGISTRY_PATH = BASE_DIR / "models" / "model_registry.json"
 SHADOW_MODEL_PATH = BASE_DIR / "models" / "model_shadow.pkl"
 PRODUCTION_MODEL_PATH = BASE_DIR / "models" / "model.pkl"
 DATA_PATH = BASE_DIR / "data" / "processed_data.pkl"
+RETRAIN_STATUS_PATH = BASE_DIR / "models" / "retrain_status.json"
+COOLDOWN_MINUTES = 2
+
+def load_retrain_status():
+    if RETRAIN_STATUS_PATH.exists():
+        with RETRAIN_STATUS_PATH.open("r") as f:
+            return json.load(f)
+    return {"status": "idle", "reason": None, "drift_score": None, "new_model_version": None, "timestamp": None}
+
+def save_retrain_status(status_data):
+    with RETRAIN_STATUS_PATH.open("w") as f:
+        json.dump(status_data, f, indent=2, default=str)
 
 def load_registry():
     if MODEL_REGISTRY_PATH.exists():
@@ -39,20 +51,26 @@ def should_retrain(drift_report):
     # Thresholds: PSI > 0.2 or KL > 0.1
     return drift_report['amount_psi'] > 0.2 or drift_report['confidence_kl'] > 0.1
 
-def retrain_model():
+def retrain_model(reason="manual", drift_score=None, top_shifted_feature=None):
     # Guard: processed training data may not be present on the server
     if not DATA_PATH.exists():
         print("WARNING: processed_data.pkl not found, skipping retrain")
-        return {"skipped": True, "reason": "training data not available on server"}
+        return {"status": "skipped", "reason": "training data not available on server"}
 
-    # Retrain on existing processed data
-    X_train, y_train, X_val, y_val, X_test, y_test, scaler = joblib.load(DATA_PATH)
+    try:
+        # Retrain on existing processed data
+        X_train, y_train, X_val, y_val, X_test, y_test, scaler = joblib.load(DATA_PATH)
 
-    model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
-    model.fit(X_train, y_train)
+        model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+        model.fit(X_train, y_train)
 
-    joblib.dump(model, SHADOW_MODEL_PATH)
-    print(f"Retrained model saved as {SHADOW_MODEL_PATH}")
+        joblib.dump(model, SHADOW_MODEL_PATH)
+        print(f"Retrained model saved as {SHADOW_MODEL_PATH}")
+    except Exception as e:
+        print(f"ERROR: Retraining failed - {e}")
+        error_result = {"status": "failed", "reason": str(e), "timestamp": datetime.now().isoformat()}
+        save_retrain_status(error_result)
+        return error_result
 
     # Update registry
     registry = load_registry()
@@ -61,11 +79,26 @@ def retrain_model():
         "version": new_version,
         "trained_at": datetime.now(),
         "auc_pr": None,  # Could compute here
-        "trigger_reason": "drift",
+        "trigger_reason": reason,
         "status": "shadow"
     })
     save_registry(registry)
-    return {"skipped": False, "version": new_version}
+    
+    result = {
+        "status": "triggered",
+        "reason": reason,
+        "drift_score": drift_score,
+        "top_shifted_feature": top_shifted_feature,
+        "data_window": "last_10k_samples",
+        "new_model_version": f"v{new_version}"
+    }
+    
+    save_retrain_status({
+        **result,
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    return result
 
 def shadow_deploy():
     # Shadow model is already saved, just confirm
@@ -80,19 +113,32 @@ def log_retrain_event(reason):
 def trigger_retrain_if_needed():
     report = compute_drift()
     if should_retrain(report):
-        retrain_model()
+        # Check cooldown
+        last_status = load_retrain_status()
+        if last_status.get("timestamp"):
+            last_time = datetime.fromisoformat(last_status["timestamp"])
+            if (datetime.now() - last_time).total_seconds() < COOLDOWN_MINUTES * 60:
+                print(f"Skipping retrain: within {COOLDOWN_MINUTES} minute cooldown.")
+                return
+
+        drift_score = max(report['amount_psi'], report['confidence_kl'])
+        top_shifted_feature = report.get('top_shifted_feature', 'Unknown')
+        retrain_model(reason="drift_threshold_exceeded", drift_score=drift_score, top_shifted_feature=top_shifted_feature)
         shadow_deploy()
         log_retrain_event(f"Drift detected: PSI={report['amount_psi']:.3f}, KL={report['confidence_kl']:.3f}")
     else:
         print("No retrain needed")
 
 def force_retrain():
-    result = retrain_model()
-    if result and result.get("skipped"):
+    report = compute_drift()
+    drift_score = max(report.get('amount_psi', 0), report.get('confidence_kl', 0))
+    top_shifted_feature = report.get('top_shifted_feature', 'Unknown')
+    result = retrain_model(reason="manual", drift_score=drift_score, top_shifted_feature=top_shifted_feature)
+    if result.get("status") in ["skipped", "failed"]:
         return result
     shadow_deploy()
     log_retrain_event("Manual retrain")
-    return result or {"skipped": False}
+    return result
 
 def promote_shadow():
     if not SHADOW_MODEL_PATH.exists():

@@ -1,0 +1,9 @@
+{
+  "status": "triggered",
+  "reason": "manual",
+  "drift_score": 1.83394929556647,
+  "top_shifted_feature": "Amount",
+  "data_window": "last_10k_samples",
+  "new_model_version": "v3",
+  "timestamp": "2026-04-25T23:01:22.172855"
+}
