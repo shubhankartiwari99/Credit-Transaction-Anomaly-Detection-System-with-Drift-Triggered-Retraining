@@ -6,3 +6,4 @@ fastapi
 uvicorn
 pyarrow
 scipy
+xgboost

@@ -1,6 +1,6 @@
 import joblib
 from pathlib import Path
-from sklearn.metrics import classification_report, roc_auc_score, precision_recall_curve, average_precision_score
+from sklearn.metrics import classification_report, roc_auc_score, precision_recall_curve, average_precision_score, precision_score, recall_score, f1_score
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
@@ -20,12 +20,16 @@ def evaluate():
     print(classification_report(y_test, y_pred))
 
     auc_roc = roc_auc_score(y_test, y_pred_proba)
-    print(f"Test AUC-ROC: {auc_roc:.4f}")
-
-    # AUC-PR
-    precision, recall, _ = precision_recall_curve(y_test, y_pred_proba)
     auc_pr = average_precision_score(y_test, y_pred_proba)
+    prec_score = precision_score(y_test, y_pred)
+    rec_score = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+
+    print(f"Test AUC-ROC: {auc_roc:.4f}")
     print(f"Test AUC-PR: {auc_pr:.4f}")
+    print(f"Test Precision: {prec_score:.4f}")
+    print(f"Test Recall: {rec_score:.4f}")
+    print(f"Test F1 Score: {f1:.4f}")
 
     if auc_pr > 0.70:
         print("✅ AUC-PR > 0.70: Solid performance!")

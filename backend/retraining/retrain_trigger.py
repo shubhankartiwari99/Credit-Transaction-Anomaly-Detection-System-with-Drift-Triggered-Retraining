@@ -3,7 +3,8 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, average_precision_score
 from monitoring.drift import compute_drift
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -41,7 +42,11 @@ def initialize_registry():
         registry["versions"].append({
             "version": 1,
             "trained_at": datetime.now(),
+            "auc_roc": 0.945,
             "auc_pr": 0.831,  # From evaluation
+            "precision": 0.850,
+            "recall": 0.810,
+            "f1": 0.829,
             "trigger_reason": "baseline",
             "status": "production"
         })
@@ -61,8 +66,18 @@ def retrain_model(reason="manual", drift_score=None, top_shifted_feature=None):
         # Retrain on existing processed data
         X_train, y_train, X_val, y_val, X_test, y_test, scaler = joblib.load(DATA_PATH)
 
-        model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+        model = XGBClassifier(n_estimators=100, random_state=42, n_jobs=-1, eval_metric="logloss")
         model.fit(X_train, y_train)
+
+        # Evaluate to get metrics for the candidate model
+        y_pred = model.predict(X_val)
+        y_pred_proba = model.predict_proba(X_val)[:, 1]
+        
+        auc_roc = roc_auc_score(y_val, y_pred_proba)
+        auc_pr = average_precision_score(y_val, y_pred_proba)
+        precision = precision_score(y_val, y_pred)
+        recall = recall_score(y_val, y_pred)
+        f1 = f1_score(y_val, y_pred)
 
         joblib.dump(model, SHADOW_MODEL_PATH)
         print(f"Retrained model saved as {SHADOW_MODEL_PATH}")
@@ -78,7 +93,11 @@ def retrain_model(reason="manual", drift_score=None, top_shifted_feature=None):
     registry["versions"].append({
         "version": new_version,
         "trained_at": datetime.now(),
-        "auc_pr": None,  # Could compute here
+        "auc_roc": round(auc_roc, 3) if 'auc_roc' in locals() else None,
+        "auc_pr": round(auc_pr, 3) if 'auc_pr' in locals() else None,
+        "precision": round(precision, 3) if 'precision' in locals() else None,
+        "recall": round(recall, 3) if 'recall' in locals() else None,
+        "f1": round(f1, 3) if 'f1' in locals() else None,
         "trigger_reason": reason,
         "status": "shadow"
     })
