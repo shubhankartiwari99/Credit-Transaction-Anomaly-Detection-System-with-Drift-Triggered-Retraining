@@ -142,7 +142,8 @@ def compare_models_and_decide(candidate_auc):
         promote_shadow()
         return True
         
-    print(f"Production AUC: {production_auc:.4f} | Candidate AUC: {candidate_auc:.4f}")
+    delta_auc = candidate_auc - production_auc
+    print(f"Production AUC: {production_auc:.4f} | Candidate AUC: {candidate_auc:.4f} | Δ AUC: {delta_auc:+.4f}")
     if candidate_auc > production_auc:
         print("Decision: better_model -> promote")
         promote_shadow()

@@ -11,6 +11,26 @@ def show_timeline():
     print(" 🧠 ML SYSTEM OBSERVABILITY & GOVERNANCE CLI")
     print("="*50 + "\n")
     
+    # Determine Last Decision
+    last_decision = "Unknown"
+    if MODEL_REGISTRY_PATH.exists():
+        with open(MODEL_REGISTRY_PATH, "r") as f:
+            try:
+                registry = json.load(f)
+                versions = registry.get("versions", [])
+                if versions:
+                    last_version = versions[-1]
+                    if len(versions) == 1:
+                        last_decision = "baseline_established"
+                    elif last_version.get("status") == "production":
+                        last_decision = "promote (candidate > production)"
+                    else:
+                        last_decision = "no_action (candidate <= production)"
+            except Exception:
+                pass
+                
+    print(f"Last Decision: {last_decision}\n")
+    
     # 1. Drift History
     print("--- Drift & Performance Timeline (Last 10 Runs) ---")
     if DRIFT_HISTORY_PATH.exists():
