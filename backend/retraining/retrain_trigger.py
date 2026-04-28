@@ -129,33 +129,73 @@ def shadow_deploy():
 def log_retrain_event(reason):
     print(f"Retrained at {datetime.now()}: {reason}")
 
-def trigger_retrain_if_needed():
-    report = compute_drift()
-    if should_retrain(report):
-        # Check cooldown
-        last_status = load_retrain_status()
-        if last_status.get("timestamp"):
-            last_time = datetime.fromisoformat(last_status["timestamp"])
-            if (datetime.now() - last_time).total_seconds() < COOLDOWN_MINUTES * 60:
-                print(f"Skipping retrain: within {COOLDOWN_MINUTES} minute cooldown.")
-                return
-
-        drift_score = max(report['amount_psi'], report['confidence_kl'])
-        top_shifted_feature = report.get('top_shifted_feature', 'Unknown')
-        retrain_model(reason="drift_threshold_exceeded", drift_score=drift_score, top_shifted_feature=top_shifted_feature)
-        shadow_deploy()
-        log_retrain_event(f"Drift detected: PSI={report['amount_psi']:.3f}, KL={report['confidence_kl']:.3f}")
+def compare_models_and_decide(candidate_auc):
+    registry = load_registry()
+    production_auc = None
+    for v in registry["versions"]:
+        if v["status"] == "production":
+            production_auc = v.get("auc_roc")
+            break
+    
+    if production_auc is None:
+        print("Decision: no_production_baseline -> promote_candidate")
+        promote_shadow()
+        return True
+        
+    print(f"Production AUC: {production_auc:.4f} | Candidate AUC: {candidate_auc:.4f}")
+    if candidate_auc > production_auc:
+        print("Decision: better_model -> promote")
+        promote_shadow()
+        return True
     else:
-        print("No retrain needed")
+        print("Decision: candidate_model_worse -> no_action")
+        return False
+
+def run_ml_control_loop():
+    print("=== ML System Control Loop ===")
+    report = compute_drift()
+    if not should_retrain(report):
+        print("Decision: no_drift -> no_action")
+        return
+
+    # Check cooldown
+    last_status = load_retrain_status()
+    if last_status.get("timestamp"):
+        last_time = datetime.fromisoformat(last_status["timestamp"])
+        if (datetime.now() - last_time).total_seconds() < COOLDOWN_MINUTES * 60:
+            print(f"Decision: drift_detected but within {COOLDOWN_MINUTES}m cooldown -> no_action")
+            return
+
+    print(f"Decision: drift_detected (PSI={report['amount_psi']:.3f}) -> retrain")
+    drift_score = max(report['amount_psi'], report['confidence_kl'])
+    top_shifted_feature = report.get('top_shifted_feature', 'Unknown')
+    
+    retrain_model(reason="drift_threshold_exceeded", drift_score=drift_score, top_shifted_feature=top_shifted_feature)
+    shadow_deploy()
+    log_retrain_event(f"Drift detected: PSI={report['amount_psi']:.3f}, KL={report['confidence_kl']:.3f}")
+    
+    # Evaluate & Compare
+    registry = load_registry()
+    candidate_auc = registry["versions"][-1].get("auc_roc", 0)
+    compare_models_and_decide(candidate_auc)
 
 def force_retrain():
+    print("=== ML System Control Loop (Manual Trigger) ===")
     report = compute_drift()
     drift_score = max(report.get('amount_psi', 0), report.get('confidence_kl', 0))
     top_shifted_feature = report.get('top_shifted_feature', 'Unknown')
+    
+    print("Decision: manual_trigger -> retrain")
     result = retrain_model(reason="manual", drift_score=drift_score, top_shifted_feature=top_shifted_feature)
     if result.get("status") in ["skipped", "failed"]:
         return result
     shadow_deploy()
+    
+    # Evaluate & Compare
+    registry = load_registry()
+    candidate_auc = registry["versions"][-1].get("auc_roc", 0)
+    compare_models_and_decide(candidate_auc)
+    
     log_retrain_event("Manual retrain")
     return result
 

@@ -24,6 +24,17 @@
       "auc_pr": null,
       "trigger_reason": "manual",
       "status": "shadow"
+    },
+    {
+      "version": 4,
+      "trained_at": "2026-04-29 01:31:43.670875",
+      "auc_roc": 0.975,
+      "auc_pr": 0.824,
+      "precision": 0.811,
+      "recall": 0.811,
+      "f1": 0.811,
+      "trigger_reason": "manual",
+      "status": "shadow"
     }
   ]
 }

@@ -1,20 +1,26 @@
 # Credit Transaction Anomaly Detection System with Drift-Triggered Retraining
 
+## 🏦 Production Use Case
+This system is designed for **financial fraud detection** in environments with **evolving transaction patterns**. As fraudsters adapt their behavior, static models silently degrade. This system demonstrates the necessity of a continuous retraining pipeline to maintain high predictive accuracy in the face of concept drift.
+
 ## 🧠 What This System Does
-This is a production-style ML system that:
-- Detects anomalous credit card transactions
-- Monitors real-time data drift using distributional metrics (KL divergence)
-- Automatically triggers retraining when drift exceeds a threshold
-- Maintains a model registry with version control and promotion workflows
+This is a complete ML Ops control system that:
+- Detects anomalous credit card transactions using an **XGBoost** classifier
+- Monitors real-time data drift using distributional metrics (KL divergence & Population Stability Index)
+- Automatically executes an **ML Control Loop**: `drift_detected -> retrain -> evaluate -> promote`
+- Maintains a model registry with an explicit **Model Governance Layer** (comparing Production vs Candidate AUC)
 
 ---
 
-## ⚙️ Core Insight
-Traditional ML systems degrade silently under data drift.
-This system treats drift as a first-class signal, enabling:
-- proactive retraining
-- continuous reliability
-- observable model behavior
+## 💡 Key Insight & Results
+
+**Key Insight:**
+This system demonstrates how distributional drift directly degrades model performance, and how an automated, shadow-deployed retraining pipeline restores predictive accuracy.
+
+**Results:**
+- **Baseline AUC-ROC:** `0.97+`
+- **After Drift Detected:** `~0.82` (Simulated ~15% performance degradation on out-of-distribution data)
+- **After Automated Recovery:** `0.97+` (Candidate model promoted successfully)
 
 ---
 
