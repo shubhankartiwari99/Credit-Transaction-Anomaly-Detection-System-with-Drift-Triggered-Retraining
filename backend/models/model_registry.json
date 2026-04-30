@@ -2,7 +2,10 @@
   "versions": [
     {
       "version": 1,
+      "model_id": "model_v1",
+      "model_path": "model_v1.pkl",
       "trained_at": "2026-04-19 00:19:51.764730",
+      "created_at": "2026-04-19T00:19:51.764730",
       "auc_pr": 0.824,
       "trigger_reason": "baseline",
       "status": "production",
@@ -13,21 +16,30 @@
     },
     {
       "version": 2,
+      "model_id": "model_v2",
+      "model_path": "model_v2.pkl",
       "trained_at": "2026-04-25 23:01:11.009555",
+      "created_at": "2026-04-25T23:01:11.009555",
       "auc_pr": null,
       "trigger_reason": "manual",
       "status": "shadow"
     },
     {
       "version": 3,
+      "model_id": "model_v3",
+      "model_path": "model_v3.pkl",
       "trained_at": "2026-04-25 23:01:22.172741",
+      "created_at": "2026-04-25T23:01:22.172741",
       "auc_pr": null,
       "trigger_reason": "manual",
       "status": "shadow"
     },
     {
       "version": 4,
+      "model_id": "model_v4",
+      "model_path": "model_v4.pkl",
       "trained_at": "2026-04-29 01:31:43.670875",
+      "created_at": "2026-04-29T01:31:43.670875",
       "auc_roc": 0.975,
       "auc_pr": 0.824,
       "precision": 0.811,

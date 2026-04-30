@@ -5,6 +5,7 @@ from datetime import datetime
 BASE_DIR = Path(__file__).resolve().parent
 DRIFT_HISTORY_PATH = BASE_DIR / "data" / "drift_history.json"
 MODEL_REGISTRY_PATH = BASE_DIR / "models" / "model_registry.json"
+DECISION_HISTORY_PATH = BASE_DIR / "models" / "decision_history.json"
 
 def show_timeline():
     print("\n" + "="*50)
@@ -13,7 +14,29 @@ def show_timeline():
     
     # Determine Last Decision
     last_decision = "Unknown"
-    if MODEL_REGISTRY_PATH.exists():
+    last_event_summary = None
+    if DECISION_HISTORY_PATH.exists():
+        try:
+            with open(DECISION_HISTORY_PATH, "r") as f:
+                history = json.load(f)
+                if history:
+                    last_event = history[-1]
+                    decision = last_event.get("decision", "unknown")
+                    drift_score = last_event.get("drift_score")
+                    delta_loss = last_event.get("delta_loss")
+                    candidate_threshold = last_event.get("candidate", {}).get("threshold")
+                    production_threshold = last_event.get("production", {}).get("threshold")
+                    last_decision = decision
+                    last_event_summary = {
+                        "drift_score": drift_score,
+                        "delta_loss": delta_loss,
+                        "production_threshold": production_threshold,
+                        "candidate_threshold": candidate_threshold
+                    }
+        except Exception:
+            pass
+
+    if last_event_summary is None and MODEL_REGISTRY_PATH.exists():
         with open(MODEL_REGISTRY_PATH, "r") as f:
             try:
                 registry = json.load(f)
@@ -28,8 +51,14 @@ def show_timeline():
                         last_decision = "no_action (candidate <= production)"
             except Exception:
                 pass
-                
+
     print(f"Last Decision: {last_decision}\n")
+    if last_event_summary:
+        print("--- Last Decision Summary ---")
+        print(f"Drift Score: {last_event_summary['drift_score']}")
+        print(f"Δ Loss: {last_event_summary['delta_loss']}")
+        print(f"Production Threshold: {last_event_summary['production_threshold']}")
+        print(f"Candidate Threshold: {last_event_summary['candidate_threshold']}\n")
     
     # 1. Drift History
     print("--- Drift & Performance Timeline (Last 10 Runs) ---")

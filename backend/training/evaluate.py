@@ -1,6 +1,7 @@
 import joblib
+import numpy as np
 from pathlib import Path
-from sklearn.metrics import classification_report, roc_auc_score, precision_recall_curve, average_precision_score, precision_score, recall_score, f1_score
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, precision_recall_curve, average_precision_score, precision_score, recall_score, f1_score
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
@@ -35,6 +36,42 @@ def evaluate():
         print("✅ AUC-PR > 0.70: Solid performance!")
     else:
         print("⚠️ AUC-PR < 0.70: May need model tuning.")
+
+
+def compute_confusion(y_true, y_pred):
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    return {
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "tp": int(tp)
+    }
+
+
+def compute_business_loss(confusion, fn_cost=10, fp_cost=1):
+    return (
+        confusion["fn"] * fn_cost +
+        confusion["fp"] * fp_cost
+    )
+
+
+def find_optimal_threshold(y_true, probs, fn_cost=10, fp_cost=1):
+    thresholds = np.linspace(0.1, 0.9, 50)
+
+    best_threshold = 0.5
+    best_loss = float("inf")
+
+    for t in thresholds:
+        preds = (probs > t).astype(int)
+        conf = compute_confusion(y_true, preds)
+        loss = compute_business_loss(conf, fn_cost, fp_cost)
+
+        if loss < best_loss:
+            best_loss = loss
+            best_threshold = float(t)
+
+    return best_threshold, best_loss
+
 
 if __name__ == '__main__':
     evaluate()

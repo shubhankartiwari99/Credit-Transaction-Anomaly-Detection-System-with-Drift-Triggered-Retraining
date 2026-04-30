@@ -8,7 +8,7 @@ This is a complete ML Ops control system that:
 - Detects anomalous credit card transactions using an **XGBoost** classifier
 - Monitors real-time data drift using distributional metrics (KL divergence & Population Stability Index)
 - Automatically executes an **ML Control Loop**: `drift_detected -> retrain -> evaluate -> promote`
-- Maintains a model registry with an explicit **Model Governance Layer** (comparing Production vs Candidate AUC)
+- Maintains a model registry with an explicit **Model Governance Layer** (comparing Production vs Candidate AUC and business-aware threshold-optimized deployment decisions)
 
 ---
 
