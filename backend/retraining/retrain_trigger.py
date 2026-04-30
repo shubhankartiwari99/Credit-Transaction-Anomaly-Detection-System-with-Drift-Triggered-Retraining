@@ -58,8 +58,8 @@ def is_threshold_stable(threshold, lower=0.2, upper=0.8):
     return lower <= threshold <= upper
 
 
-def decide_promotion(prod_metrics, cand_metrics):
-    if cand_metrics["loss"] < prod_metrics["loss"]:
+def decide_promotion(prod_metrics, cand_metrics, loss_margin=0.98):
+    if cand_metrics["loss"] < prod_metrics["loss"] * loss_margin:
         return "promote"
     elif cand_metrics["loss"] > prod_metrics["loss"]:
         return "reject"
@@ -179,6 +179,7 @@ def evaluate_model_for_decision(model, X_eval, y_eval):
     preds = (probs > best_threshold).astype(int)
     confusion = compute_confusion(y_eval, preds)
     recall = confusion["tp"] / (confusion["tp"] + confusion["fn"]) if (confusion["tp"] + confusion["fn"]) > 0 else 0.0
+    precision = confusion["tp"] / (confusion["tp"] + confusion["fp"]) if (confusion["tp"] + confusion["fp"]) > 0 else 0.0
     threshold_status = "stable" if is_threshold_stable(best_threshold) else "unstable"
 
     return {
@@ -188,7 +189,8 @@ def evaluate_model_for_decision(model, X_eval, y_eval):
         "threshold_status": threshold_status,
         "confusion": confusion,
         "loss": best_loss,
-        "recall": recall
+        "recall": recall,
+        "precision": precision
     }
 
 
@@ -218,20 +220,24 @@ def compare_models_and_decide(drift_detected=False, drift_score=None):
     print(f"Production Best Threshold: {prod_metrics['threshold']:.2f}")
     print(f"Production Threshold Status: {prod_metrics['threshold_status']}")
     print(f"Production Recall: {prod_metrics['recall']:.4f}")
+    print(f"Production Precision: {prod_metrics['precision']:.4f}")
     print(f"Production Confusion: {prod_metrics['confusion']}\n")
 
     print(f"Candidate Best Threshold: {cand_metrics['threshold']:.2f}")
     print(f"Candidate Threshold Status: {cand_metrics['threshold_status']}")
     print(f"Candidate Recall: {cand_metrics['recall']:.4f}")
+    print(f"Candidate Precision: {cand_metrics['precision']:.4f}")
     print(f"Candidate Confusion: {cand_metrics['confusion']}\n")
 
     print(f"Production Loss: {prod_metrics['loss']}")
     print(f"Candidate Loss: {cand_metrics['loss']}")
     print(f"Δ Loss: {delta_loss:+.0f}\n")
 
-    decision = "promote"
     if production_entry is not None:
-        decision = decide_promotion(prod_metrics, cand_metrics)
+        if prod_metrics["threshold_status"] == "unstable" or cand_metrics["threshold_status"] == "unstable":
+            decision = "no_change"
+        else:
+            decision = decide_promotion(prod_metrics, cand_metrics)
 
     if production_entry is None:
         print("Decision: no_production_baseline -> promote_candidate")
@@ -239,6 +245,10 @@ def compare_models_and_decide(drift_detected=False, drift_score=None):
         print("Decision: promote")
     elif decision == "reject":
         print("Decision: reject")
+    elif decision == "no_change" and (
+            prod_metrics["threshold_status"] == "unstable" or
+            cand_metrics["threshold_status"] == "unstable"):
+        print("Decision: no_change (unstable threshold)")
     else:
         print("Decision: no_change")
 
@@ -264,6 +274,7 @@ def compare_models_and_decide(drift_detected=False, drift_score=None):
             "version": production_entry["version"] if production_entry else None,
             "model_id": production_entry["model_id"] if production_entry else None,
             "auc": round(prod_metrics["auc_roc"], 4),
+            "precision": round(prod_metrics["precision"], 4),
             "threshold": round(prod_metrics["threshold"], 3),
             "threshold_status": prod_metrics["threshold_status"],
             "recall": round(prod_metrics["recall"], 4),
@@ -274,6 +285,7 @@ def compare_models_and_decide(drift_detected=False, drift_score=None):
             "version": candidate_entry["version"],
             "model_id": candidate_entry.get("model_id"),
             "auc": round(cand_metrics["auc_roc"], 4),
+            "precision": round(cand_metrics["precision"], 4),
             "threshold": round(cand_metrics["threshold"], 3),
             "threshold_status": cand_metrics["threshold_status"],
             "recall": round(cand_metrics["recall"], 4),

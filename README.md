@@ -47,6 +47,14 @@ graph LR
 - Observability: drift timeline + prediction distribution visualization
 - Shadow model deployment enables safe A/B comparison before promotion
 
+## 🔁 System Architecture
+Data → Drift Detection → Retrain → Shadow Evaluation → Threshold Optimization → Business Loss Comparison → Decision → Registry Update → Inference with Learned Threshold
+
+## ⚠️ Failure & Governance Scenarios
+- Candidate model can have better AUC but worse business loss, and will be rejected
+- If the optimized threshold is unstable, the system chooses `no_change` rather than promoting
+- Drift detected within cooldown window is logged but does not trigger retraining
+
 ---
 
 ## 🧠 Design Decisions
