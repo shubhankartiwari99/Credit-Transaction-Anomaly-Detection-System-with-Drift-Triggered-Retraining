@@ -66,6 +66,24 @@ def decide_promotion(prod_metrics, cand_metrics, loss_margin=0.98):
     return "no_change"
 
 
+def compute_decision_confidence(delta_loss, prod_threshold_status, cand_threshold_status, drift_score=None):
+    if prod_threshold_status == "unstable" or cand_threshold_status == "unstable":
+        return "low"
+
+    if drift_score is not None and drift_score >= 0.5:
+        if delta_loss >= 50:
+            return "high"
+        if delta_loss >= 20:
+            return "medium"
+        return "low"
+
+    if delta_loss >= 30:
+        return "high"
+    if delta_loss >= 10:
+        return "medium"
+    return "low"
+
+
 def initialize_registry():
     registry = load_registry()
     if not registry["versions"]:
@@ -232,6 +250,14 @@ def compare_models_and_decide(drift_detected=False, drift_score=None):
     print(f"Production Loss: {prod_metrics['loss']}")
     print(f"Candidate Loss: {cand_metrics['loss']}")
     print(f"Δ Loss: {delta_loss:+.0f}\n")
+
+    decision_confidence = compute_decision_confidence(
+        delta_loss,
+        prod_metrics["threshold_status"],
+        cand_metrics["threshold_status"],
+        drift_score
+    )
+    print(f"Decision Confidence: {decision_confidence}\n")
 
     if production_entry is not None:
         if prod_metrics["threshold_status"] == "unstable" or cand_metrics["threshold_status"] == "unstable":
