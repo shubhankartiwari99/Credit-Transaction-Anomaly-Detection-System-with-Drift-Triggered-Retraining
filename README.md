@@ -1,7 +1,7 @@
-# Credit Transaction Anomaly Detection System with Drift-Triggered Retraining
+# Drift-Aware Model Governance Pipeline for Credit Fraud Detection
 
 ## 🏦 Production Use Case
-This system is designed for **financial fraud detection** in environments with **evolving transaction patterns**. As fraudsters adapt their behavior, static models silently degrade. This system demonstrates the necessity of a continuous retraining pipeline to maintain high predictive accuracy in the face of concept drift.
+This repository implements a **drift-aware model governance pipeline with business-aware promotion decisions** for credit transaction fraud detection. As transaction behavior evolves, the system monitors data drift, evaluates candidate models against production, and only promotes when model governance rules and business loss thresholds are met.
 
 ## 🧠 What This System Does
 This is a complete ML Ops control system that:

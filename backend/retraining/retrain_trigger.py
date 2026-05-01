@@ -259,24 +259,35 @@ def compare_models_and_decide(drift_detected=False, drift_score=None):
     )
     print(f"Decision Confidence: {decision_confidence}\n")
 
-    if production_entry is not None:
-        if prod_metrics["threshold_status"] == "unstable" or cand_metrics["threshold_status"] == "unstable":
-            decision = "no_change"
+    decision = None
+    decision_reason = None
+    if production_entry is None:
+        decision = "promote"
+        decision_reason = "no production baseline"
+    elif prod_metrics["threshold_status"] == "unstable" or cand_metrics["threshold_status"] == "unstable":
+        decision = "no_change"
+        decision_reason = "unstable threshold"
+    else:
+        decision = decide_promotion(prod_metrics, cand_metrics)
+        if decision == "promote":
+            decision_reason = "loss improvement > threshold"
+        elif decision == "reject":
+            decision_reason = "candidate loss not lower than production"
         else:
-            decision = decide_promotion(prod_metrics, cand_metrics)
+            decision_reason = "no actionable improvement"
 
     if production_entry is None:
-        print("Decision: no_production_baseline -> promote_candidate")
+        print(f"Decision: no_production_baseline -> promote_candidate ({decision_reason})")
     elif decision == "promote":
-        print("Decision: promote")
+        print(f"Decision: promote ({decision_reason})")
     elif decision == "reject":
-        print("Decision: reject")
+        print(f"Decision: reject ({decision_reason})")
     elif decision == "no_change" and (
             prod_metrics["threshold_status"] == "unstable" or
             cand_metrics["threshold_status"] == "unstable"):
-        print("Decision: no_change (unstable threshold)")
+        print(f"Decision: no_change (unstable threshold) ({decision_reason})")
     else:
-        print("Decision: no_change")
+        print(f"Decision: no_change ({decision_reason})")
 
     if production_entry:
         production_entry["best_threshold"] = round(prod_metrics["threshold"], 3)

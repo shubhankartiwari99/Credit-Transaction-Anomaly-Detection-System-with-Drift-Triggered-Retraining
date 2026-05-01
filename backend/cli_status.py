@@ -26,12 +26,20 @@ def show_timeline():
                     delta_loss = last_event.get("delta_loss")
                     candidate_threshold = last_event.get("candidate", {}).get("threshold")
                     production_threshold = last_event.get("production", {}).get("threshold")
+                    production_version = last_event.get("production", {}).get("version")
+                    candidate_version = last_event.get("candidate", {}).get("version")
+                    production_model_id = last_event.get("production", {}).get("model_id")
+                    candidate_model_id = last_event.get("candidate", {}).get("model_id")
                     last_decision = decision
                     last_event_summary = {
                         "drift_score": drift_score,
                         "delta_loss": delta_loss,
                         "production_threshold": production_threshold,
-                        "candidate_threshold": candidate_threshold
+                        "candidate_threshold": candidate_threshold,
+                        "production_version": production_version,
+                        "candidate_version": candidate_version,
+                        "production_model_id": production_model_id,
+                        "candidate_model_id": candidate_model_id
                     }
         except Exception:
             pass
@@ -56,9 +64,11 @@ def show_timeline():
     if last_event_summary:
         print("--- Last Decision Summary ---")
         print(f"Drift Score: {last_event_summary['drift_score']}")
-        print(f"Δ Loss: {last_event_summary['delta_loss']}")
+        print(f"Production Version: v{last_event_summary['production_version']} ({last_event_summary['production_model_id']})")
+        print(f"Candidate Version: v{last_event_summary['candidate_version']} ({last_event_summary['candidate_model_id']})")
         print(f"Production Threshold: {last_event_summary['production_threshold']}")
-        print(f"Candidate Threshold: {last_event_summary['candidate_threshold']}\n")
+        print(f"Candidate Threshold: {last_event_summary['candidate_threshold']}")
+        print(f"Δ Loss: {last_event_summary['delta_loss']}\n")
     
     # 1. Drift History
     print("--- Drift & Performance Timeline (Last 10 Runs) ---")
