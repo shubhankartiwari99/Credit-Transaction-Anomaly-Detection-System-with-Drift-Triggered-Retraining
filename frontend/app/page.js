@@ -104,6 +104,10 @@ async function fetchJson(url) {
   return response.json()
 }
 
+const MaterialIcon = ({ icon, className = '' }) => (
+  <span className={`material-symbols-outlined ${className}`} data-icon={icon}>{icon}</span>
+)
+
 export default function FraudDashboard() {
   const [metrics, setMetrics] = useState({
     amountKl: 0,
@@ -261,10 +265,6 @@ export default function FraudDashboard() {
   const latestPrediction = predictions[predictions.length - 1] || null
   const registryCount = registrySummary.length
 
-  const MaterialIcon = ({ icon, className = '' }) => (
-    <span className={`material-symbols-outlined ${className}`} data-icon={icon}>{icon}</span>
-  )
-
   return (
     <>
       <nav className="bg-surface-dim hidden lg:flex flex-col h-screen py-margin left-0 w-72 border-r border-outline/10 fixed z-40">
@@ -278,22 +278,17 @@ export default function FraudDashboard() {
           </div>
         </div>
         <div className="flex-1 px-4 space-y-1 overflow-y-auto">
-          <a className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary border-l-4 border-primary font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300 translate-x-1" href="#">
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary border-l-4 border-primary font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300 translate-x-1" href="#live-surveillance">
             <MaterialIcon icon="monitoring" /> Live Surveillance
           </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#model-registry">
             <MaterialIcon icon="database" /> Model Registry
           </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#system-health">
             <MaterialIcon icon="analytics" /> System Health
           </a>
-          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#drift-history">
             <MaterialIcon icon="history" /> History
-          </a>
-        </div>
-        <div className="px-4 mt-auto space-y-1 pt-4 border-t border-outline/10">
-          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
-            <MaterialIcon icon="settings" /> Settings
           </a>
         </div>
       </nav>
@@ -310,10 +305,6 @@ export default function FraudDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 rounded-full hover:bg-surface-variant/50 relative">
-              <MaterialIcon icon="notifications" />
-              {errors.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-danger-rose rounded-full"></span>}
-            </button>
             <div className="ml-4 w-9 h-9 rounded-full bg-surface-container border border-primary/30 overflow-hidden relative group cursor-pointer">
               <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkh8HQGA2CMJfBGV_5TcCjWM46Z98xcqW_rZ34DX44ZsBYjNf3B4GZ2V8jmXQ-yd7srUXMvFxwTbIkUFx20d0vBZs2RQRrJ4STR19KoehEbhapQ9VRQ6epJvIHXznRVMHtKSUzi8kpKr3wiu6Z7-X5hSZZlesN6K4NBbin6m1qlCXafJi1ECZ5XGi0_SzbDfZrtY0wZvjyML-1ZRbvzrvUxZRC1oBD1yVH8VnnEZHhMY179EUYHdaSHHPNqUHIuoEoxx3ydiooAU89" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -321,7 +312,7 @@ export default function FraudDashboard() {
         </header>
 
         <main className="flex-1 p-gutter max-w-container-max-width mx-auto w-full">
-          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 animate-fade-in-up">
+          <div id="live-surveillance" className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 animate-fade-in-up">
             <div>
               <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Fraud ML System</h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Live drift surveillance, model registry status, and seeded prediction telemetry from the production backend.</p>
@@ -457,7 +448,7 @@ export default function FraudDashboard() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] mb-6">
-            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-6">
+            <div id="system-health" className="glass-panel p-6 flex flex-col animate-fade-in-up-6">
               <h2 className="font-headline-sm text-headline-sm text-on-surface mb-6">System Health</h2>
               
               <div className="bg-surface-container border border-outline/10 rounded-lg p-4 mb-4">
@@ -502,7 +493,7 @@ export default function FraudDashboard() {
               </div>
             </div>
 
-            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-6">
+            <div id="model-registry" className="glass-panel p-6 flex flex-col animate-fade-in-up-6">
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <h2 className="font-headline-sm text-headline-sm text-on-surface">Model Registry</h2>
@@ -564,7 +555,7 @@ export default function FraudDashboard() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2 mb-6">
-            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-7 chart-grid">
+            <div id="drift-history" className="glass-panel p-6 flex flex-col animate-fade-in-up-7 chart-grid">
               <div className="mb-5">
                 <h2 className="font-headline-sm text-headline-sm text-on-surface">Drift Score Over Time</h2>
                 <p className="font-body-md text-body-md text-on-surface-variant mt-1">Evolution of data distribution divergence</p>
@@ -624,21 +615,17 @@ export default function FraudDashboard() {
       </div>
       
       <nav className="fixed bottom-0 left-0 w-full z-50 flex lg:hidden justify-around items-center py-2 pb-safe bg-surface-container-highest/90 backdrop-blur-xl rounded-t-xl border-t border-outline/20 shadow-lg">
-        <a className="flex flex-col items-center justify-center text-primary font-bold active:bg-surface-variant scale-110 transition-transform duration-150 p-2 rounded-lg" href="#">
+        <a className="flex flex-col items-center justify-center text-primary font-bold active:bg-surface-variant scale-110 transition-transform duration-150 p-2 rounded-lg" href="#live-surveillance">
           <MaterialIcon icon="radar" />
           <span className="font-label-sm mt-1">Live</span>
         </a>
-        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#model-registry">
           <MaterialIcon icon="inventory_2" />
           <span className="font-label-sm mt-1">Models</span>
         </a>
-        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#system-health">
           <MaterialIcon icon="vital_signs" />
           <span className="font-label-sm mt-1">Health</span>
-        </a>
-        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
-          <MaterialIcon icon="settings" />
-          <span className="font-label-sm mt-1">Settings</span>
         </a>
       </nav>
     </>
