@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fraud Operations Console - Neural Sentry</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=JetBrains+Mono:wght@100..800&amp;family=Plus+Jakarta+Sans:wght@400..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#23293c",
+                      "secondary-container": "#3f465c",
+                      "surface-container-lowest": "#070d1f",
+                      "error-container": "#93000a",
+                      "secondary": "#bec6e0",
+                      "outline": "#869397",
+                      "success-emerald": "#10B981",
+                      "inverse-on-surface": "#2a3043",
+                      "on-surface": "#dce1fb",
+                      "tertiary-container": "#ff7f8b",
+                      "surface-variant": "#2e3447",
+                      "surface-slate": "#0F172A",
+                      "primary": "#4cd7f6",
+                      "on-tertiary-fixed": "#40000d",
+                      "outline-variant": "#3d494c",
+                      "on-error": "#690005",
+                      "on-error-container": "#ffdad6",
+                      "info-cyan": "#06B6D4",
+                      "on-secondary-fixed-variant": "#3f465c",
+                      "on-primary": "#003640",
+                      "on-surface-variant": "#bcc9cd",
+                      "secondary-fixed-dim": "#bec6e0",
+                      "inverse-surface": "#dce1fb",
+                      "surface-bright": "#33394c",
+                      "on-secondary-fixed": "#131b2e",
+                      "background": "#0c1324",
+                      "surface-container": "#191f31",
+                      "tertiary": "#ffb2b7",
+                      "secondary-fixed": "#dae2fd",
+                      "surface-dim": "#0c1324",
+                      "on-background": "#dce1fb",
+                      "inverse-primary": "#00687a",
+                      "error": "#ffb4ab",
+                      "primary-container": "#06b6d4",
+                      "primary-fixed-dim": "#4cd7f6",
+                      "on-tertiary-container": "#7d0023",
+                      "on-primary-container": "#00424f",
+                      "surface-tint": "#4cd7f6",
+                      "primary-fixed": "#acedff",
+                      "on-primary-fixed-variant": "#004e5c",
+                      "danger-rose": "#F43F5E",
+                      "bg-deep": "#020617",
+                      "surface": "#0c1324",
+                      "tertiary-fixed": "#ffdadb",
+                      "on-secondary": "#283044",
+                      "on-secondary-container": "#adb4ce",
+                      "on-primary-fixed": "#001f26",
+                      "on-tertiary": "#67001b",
+                      "tertiary-fixed-dim": "#ffb2b7",
+                      "surface-container-highest": "#2e3447",
+                      "on-tertiary-fixed-variant": "#92002a",
+                      "surface-container-low": "#151b2d"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "grid-columns": "12",
+                      "container-max-width": "1440px",
+                      "gutter": "1.5rem",
+                      "base-unit": "4px",
+                      "margin": "2rem"
+              },
+              "fontFamily": {
+                      "body-lg": ["Geist"],
+                      "label-md": ["JetBrains Mono"],
+                      "headline-sm": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "headline-lg-mobile": ["Plus Jakarta Sans"],
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "body-md": ["Geist"],
+                      "label-sm": ["JetBrains Mono"]
+              },
+              "fontSize": {
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-sm": ["10px", {"lineHeight": "12px", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .glass-panel {
+                @apply bg-surface-slate border border-info-cyan/10 rounded-lg shadow-sm backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:border-info-cyan/30;
+            }
+            .chart-grid {
+                background-image: 
+                    linear-gradient(to right, rgba(134, 147, 151, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(134, 147, 151, 0.05) 1px, transparent 1px);
+                background-size: 20px 20px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-bg-deep text-on-surface font-body-md min-h-screen flex selection:bg-info-cyan/30 selection:text-primary">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface-dim hidden lg:flex flex-col h-screen py-margin docked left-0 w-72 border-r border-outline/10 fixed z-40">
+<!-- Header -->
+<div class="px-6 mb-8 flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary" data-icon="shield">shield</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-primary">Fraud Ops</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Precision Monitoring</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 px-4 space-y-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary border-l-4 border-primary font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300 translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+                Live Surveillance
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="database">database</span>
+                Model Registry
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                System Health
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+                History
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+                Analytics
+            </a>
+</div>
+<!-- Footer Links -->
+<div class="px-4 mt-auto space-y-1 pt-4 border-t border-outline/10">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                Log Out
+            </a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 lg:ml-72 flex flex-col min-h-screen">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface-container/80 backdrop-blur-md flex justify-between items-center px-gutter w-full h-16 docked full-width top-0 sticky z-50 border-b border-outline/10">
+<!-- Mobile Menu Toggle (hidden on lg) -->
+<button class="lg:hidden text-on-surface-variant p-2 -ml-2 rounded-lg hover:bg-surface-variant/50">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<!-- Brand Logo / Page Title Context -->
+<div class="flex items-center gap-4">
+<h1 class="font-headline-md text-headline-md font-bold tracking-tighter text-primary">Neural Sentry</h1>
+<span class="hidden md:inline-block px-3 py-1 bg-surface-container-high rounded-full font-label-sm text-label-sm text-on-surface-variant border border-outline/10">
+                    Live Surveillance
+                </span>
+</div>
+<!-- Trailing Actions & Profile -->
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 rounded-full hover:bg-surface-variant/50 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-danger-rose rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 rounded-full hover:bg-surface-variant/50 hidden sm:block">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 rounded-full hover:bg-surface-variant/50 hidden sm:block">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="ml-4 w-9 h-9 rounded-full bg-surface-container border border-primary/30 overflow-hidden relative group cursor-pointer">
+<img alt="Analyst profile" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" data-alt="A professional headshot of a female cybersecurity analyst in a dimly lit, high-tech control room setting. She is illuminated by the soft cyan glow of multiple monitors displaying complex data visualizations. The mood is focused and serious, conveying expertise and vigilance. The overall palette features deep slate blues, shadows, and crisp, bright cyan highlights reflecting off her glasses." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkh8HQGA2CMJfBGV_5TcCjWM46Z98xcqW_rZ34DX44ZsBYjNf3B4GZ2V8jmXQ-yd7srUXMvFxwTbIkUFx20d0vBZs2RQRrJ4STR19KoehEbhapQ9VRQ6epJvIHXznRVMHtKSUzi8kpKr3wiu6Z7-X5hSZZlesN6K4NBbin6m1qlCXafJi1ECZ5XGi0_SzbDfZrtY0wZvjyML-1ZRbvzrvUxZRC1oBD1yVH8VnnEZHhMY179EUYHdaSHHPNqUHIuoEoxx3ydiooAU89"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas Area -->
+<main class="flex-1 p-gutter max-w-container-max-width mx-auto w-full">
+<!-- Page Header / Context -->
+<div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Fraud ML System</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Live drift surveillance, model registry status, and seeded prediction telemetry from the production backend.</p>
+</div>
+<div class="flex gap-3">
+<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success-emerald/10 border border-success-emerald/30 font-label-md text-label-md text-success-emerald">
+<span class="w-2 h-2 rounded-full bg-success-emerald animate-pulse"></span>
+                        Stable
+                    </span>
+<button class="px-4 py-2 rounded-lg bg-surface-container border border-outline/20 font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-colors">Retrain</button>
+<button class="px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 font-label-md text-label-md text-primary hover:bg-primary/20 transition-colors">Promote</button>
+</div>
+</div>
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+<!-- Metric Card 1 -->
+<div class="glass-panel p-6 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Observed Fraud Rate</span>
+<span class="material-symbols-outlined text-outline" data-icon="policy">policy</span>
+</div>
+<div class="mt-auto">
+<span class="font-headline-lg text-headline-lg text-primary">0%</span>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">0 recent predictions sampled</p>
+</div>
+</div>
+<!-- Metric Card 2 -->
+<div class="glass-panel p-6 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Registry Versions</span>
+<span class="material-symbols-outlined text-outline" data-icon="layers">layers</span>
+</div>
+<div class="mt-auto">
+<span class="font-headline-lg text-headline-lg text-on-surface">0</span>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">No versions returned</p>
+</div>
+</div>
+<!-- Metric Card 3 -->
+<div class="glass-panel p-6 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Latest Confidence</span>
+<span class="material-symbols-outlined text-outline" data-icon="target">target</span>
+</div>
+<div class="mt-auto">
+<span class="font-headline-lg text-headline-lg text-on-surface-variant">n/a</span>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Waiting for prediction data</p>
+</div>
+</div>
+<!-- Metric Card 4 -->
+<div class="glass-panel p-6 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Last Sync</span>
+<span class="material-symbols-outlined text-outline animate-spin" data-icon="sync">sync</span>
+</div>
+<div class="mt-auto">
+<span class="font-headline-lg text-headline-lg text-primary animate-pulse">pending</span>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Refreshing now...</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Shared Component - Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex md:hidden justify-around items-center py-2 pb-safe bg-surface-container-highest/90 backdrop-blur-xl rounded-t-xl border-t border-outline/20 shadow-lg">
+<a class="flex flex-col items-center justify-center text-primary font-bold active:bg-surface-variant scale-110 transition-transform duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="radar">radar</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Models</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="vital_signs">vital_signs</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Health</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-sm text-label-sm-mobile mt-1">Settings</span>
+</a>
+</nav>
+</body></html>

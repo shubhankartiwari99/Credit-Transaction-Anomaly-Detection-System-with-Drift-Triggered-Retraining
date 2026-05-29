@@ -14,16 +14,17 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Area,
+  AreaChart
 } from 'recharts'
-import { Activity, AlertTriangle, RefreshCw, ShieldAlert, Zap } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const CHART_COLORS = {
-  production: '#5eead4',
-  shadow: '#f59e0b',
-  danger: '#fb7185',
-  calm: '#38bdf8',
-  grid: 'rgba(148, 163, 184, 0.16)',
+  production: '#4cd7f6', // primary
+  shadow: '#bec6e0', // secondary
+  danger: '#F43F5E', // danger-rose
+  calm: '#06B6D4', // info-cyan
+  grid: 'rgba(134, 147, 151, 0.1)', // outline with low opacity
 }
 
 function formatTimestamp(value) {
@@ -87,12 +88,12 @@ function normalizeMetrics(payload) {
 
 function getDriftStatus(metrics) {
   if (metrics.amountPsi > 0.2 || metrics.confidenceKl > 0.1) {
-    return { label: 'Drift Watch', tone: 'text-rose-300 bg-rose-500/10 border-rose-400/30' }
+    return { label: 'Drift Watch', tone: 'text-danger-rose bg-danger-rose/10 border-danger-rose/30' }
   }
   if (metrics.amountPsi > 0.1 || metrics.confidenceKl > 0.05) {
-    return { label: 'Monitor', tone: 'text-amber-300 bg-amber-500/10 border-amber-400/30' }
+    return { label: 'Monitor', tone: 'text-info-cyan bg-info-cyan/10 border-info-cyan/30' }
   }
-  return { label: 'Stable', tone: 'text-emerald-300 bg-emerald-500/10 border-emerald-400/30' }
+  return { label: 'Stable', tone: 'text-success-emerald bg-success-emerald/10 border-success-emerald/30' }
 }
 
 async function fetchJson(url) {
@@ -257,464 +258,389 @@ export default function FraudDashboard() {
   }, [predictions])
 
   const driftStatus = getDriftStatus(metrics)
-
   const latestPrediction = predictions[predictions.length - 1] || null
-
   const registryCount = registrySummary.length
 
+  const MaterialIcon = ({ icon, className = '' }) => (
+    <span className={`material-symbols-outlined ${className}`} data-icon={icon}>{icon}</span>
+  )
+
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 md:px-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="animate-fade-in-up mb-6 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/90 to-slate-950/90 p-6 shadow-2xl shadow-cyan-500/5 backdrop-blur-sm md:flex-row md:items-end md:justify-between">
+    <>
+      <nav className="bg-surface-dim hidden lg:flex flex-col h-screen py-margin left-0 w-72 border-r border-outline/10 fixed z-40">
+        <div className="px-6 mb-8 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center border border-primary/20">
+            <MaterialIcon icon="shield" className="text-primary" />
+          </div>
           <div>
-            <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-cyan-300/70">
-              <Activity size={14} className="animate-pulse" />
-              Fraud Operations Console
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-50 md:text-4xl">Fraud ML System</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Live drift surveillance, model registry status, and seeded prediction telemetry from the
-              production backend.
-            </p>
+            <h2 className="font-headline-sm text-headline-sm font-bold text-primary">Fraud Ops</h2>
+            <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Precision Monitoring</p>
           </div>
+        </div>
+        <div className="flex-1 px-4 space-y-1 overflow-y-auto">
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary border-l-4 border-primary font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300 translate-x-1" href="#">
+            <MaterialIcon icon="monitoring" /> Live Surveillance
+          </a>
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+            <MaterialIcon icon="database" /> Model Registry
+          </a>
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+            <MaterialIcon icon="analytics" /> System Health
+          </a>
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+            <MaterialIcon icon="history" /> History
+          </a>
+        </div>
+        <div className="px-4 mt-auto space-y-1 pt-4 border-t border-outline/10">
+          <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-variant/30 font-label-md text-label-md group hover:bg-surface-container-high transition-all duration-300" href="#">
+            <MaterialIcon icon="settings" /> Settings
+          </a>
+        </div>
+      </nav>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${driftStatus.tone}`}>
-              {driftStatus.label}
+      <div className="flex-1 lg:ml-72 flex flex-col min-h-screen">
+        <header className="bg-surface-container/80 backdrop-blur-md flex justify-between items-center px-gutter w-full h-16 sticky top-0 z-50 border-b border-outline/10">
+          <button className="lg:hidden text-on-surface-variant p-2 -ml-2 rounded-lg hover:bg-surface-variant/50">
+            <MaterialIcon icon="menu" />
+          </button>
+          <div className="flex items-center gap-4">
+            <h1 className="font-headline-md text-headline-md font-bold tracking-tighter text-primary">Neural Sentry</h1>
+            <span className="hidden md:inline-block px-3 py-1 bg-surface-container-high rounded-full font-label-sm text-label-sm text-on-surface-variant border border-outline/10">
+                Live Surveillance
             </span>
-            <button
-              onClick={handleRetrain}
-              disabled={retraining}
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <RefreshCw size={16} className={retraining ? 'animate-spin' : ''} /> {retraining ? 'Retraining...' : 'Retrain'}
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 rounded-full hover:bg-surface-variant/50 relative">
+              <MaterialIcon icon="notifications" />
+              {errors.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-danger-rose rounded-full"></span>}
             </button>
-            <button
-              onClick={handlePromote}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/10"
-            >
-              <Zap size={16} /> Promote
-            </button>
+            <div className="ml-4 w-9 h-9 rounded-full bg-surface-container border border-primary/30 overflow-hidden relative group cursor-pointer">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkh8HQGA2CMJfBGV_5TcCjWM46Z98xcqW_rZ34DX44ZsBYjNf3B4GZ2V8jmXQ-yd7srUXMvFxwTbIkUFx20d0vBZs2RQRrJ4STR19KoehEbhapQ9VRQ6epJvIHXznRVMHtKSUzi8kpKr3wiu6Z7-X5hSZZlesN6K4NBbin6m1qlCXafJi1ECZ5XGi0_SzbDfZrtY0wZvjyML-1ZRbvzrvUxZRC1oBD1yVH8VnnEZHhMY179EUYHdaSHHPNqUHIuoEoxx3ydiooAU89" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+            </div>
           </div>
-        </div>
+        </header>
 
-        <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className={`animate-fade-in-up animate-fade-in-up-1 rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] ${fraudRate > 5 ? 'border-rose-500/40 bg-gradient-to-br from-rose-950/40 to-slate-900/70 pulse-glow-danger' : 'border-slate-800 bg-slate-900/70'}`}>
-            <div className="text-sm text-slate-400">Observed Fraud Rate</div>
-            <div className="mt-3 text-4xl font-semibold text-rose-200">{fraudRate}%</div>
-            <div className="mt-2 text-xs text-slate-500">{predictions.length} recent predictions sampled</div>
-          </div>
-          <div className="animate-fade-in-up animate-fade-in-up-2 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700">
-            <div className="text-sm text-slate-400">Registry Versions</div>
-            <div className="mt-3 text-4xl font-semibold text-cyan-100">{registryCount}</div>
-            <div className="mt-2 text-xs text-slate-500">
-              {registryCount > 0 ? `Latest: v${registrySummary[registryCount - 1].version}` : 'No versions returned'}
-            </div>
-          </div>
-          <div className="animate-fade-in-up animate-fade-in-up-3 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700">
-            <div className="text-sm text-slate-400">Latest Confidence</div>
-            <div className="mt-3 text-4xl font-semibold text-amber-100">
-              {latestPrediction ? `${(latestPrediction.confidence * 100).toFixed(1)}%` : 'n/a'}
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              {latestPrediction ? `Recorded at ${latestPrediction.label}` : 'Waiting for prediction data'}
-            </div>
-          </div>
-          <div className="animate-fade-in-up animate-fade-in-up-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-slate-700">
-            <div className="text-sm text-slate-400">Last Sync</div>
-            <div className="mt-3 text-2xl font-semibold text-slate-100">
-              {lastUpdated ? formatTimestamp(lastUpdated.toISOString()) : 'pending'}
-            </div>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-              {loading ? (<><span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span> Refreshing now</>) : 'Auto-refresh every 30s'}
-            </div>
-          </div>
-        </div>
-
-        {errors.length > 0 && (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-            <AlertTriangle className="mt-0.5 shrink-0" size={18} />
+        <main className="flex-1 p-gutter max-w-container-max-width mx-auto w-full">
+          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 animate-fade-in-up">
             <div>
-              <div className="font-medium">Partial dashboard data unavailable</div>
-              <div className="mt-1 text-amber-100/80">{errors.join(' • ')}</div>
+              <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">Fraud ML System</h1>
+              <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Live drift surveillance, model registry status, and seeded prediction telemetry from the production backend.</p>
+            </div>
+            <div className="flex gap-3">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-label-md text-label-md ${driftStatus.tone}`}>
+                <span className={`w-2 h-2 rounded-full animate-pulse ${driftStatus.tone.includes('emerald') ? 'bg-success-emerald' : driftStatus.tone.includes('rose') ? 'bg-danger-rose' : 'bg-info-cyan'}`}></span>
+                {driftStatus.label}
+              </span>
+              <button onClick={handleRetrain} disabled={retraining} className="px-4 py-2 rounded-lg bg-surface-container border border-outline/20 font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                {retraining ? 'Retraining...' : 'Retrain'}
+              </button>
+              <button onClick={handlePromote} className="px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 font-label-md text-label-md text-primary hover:bg-primary/20 transition-colors">Promote</button>
             </div>
           </div>
-        )}
 
-        <div className="animate-fade-in-up animate-fade-in-up-5 mb-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="mb-5 flex items-center justify-between">
+          {errors.length > 0 && (
+            <div className="mb-6 flex items-start gap-3 rounded-lg border border-danger-rose/30 bg-danger-rose/10 p-4 text-sm text-danger-rose">
+              <MaterialIcon icon="warning" className="mt-0.5 shrink-0" />
               <div>
-                <h2 className="text-lg font-semibold text-slate-100">Prediction Confidence Trend</h2>
-                <p className="mt-1 text-sm text-slate-400">Latest production and shadow confidence values</p>
+                <div className="font-medium">Partial dashboard data unavailable</div>
+                <div className="mt-1 opacity-80">{errors.join(' • ')}</div>
               </div>
-              <ShieldAlert className="text-cyan-300/70" size={20} />
             </div>
-            <div className="h-72">
-              {predictionTrendData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={predictionTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                    <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 100]} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#020617',
-                        border: '1px solid rgba(148, 163, 184, 0.18)',
-                        borderRadius: '14px',
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="confidence"
-                      stroke={CHART_COLORS.production}
-                      strokeWidth={3}
-                      dot={false}
-                      name="Production %"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="shadowConfidence"
-                      stroke={CHART_COLORS.shadow}
-                      strokeWidth={2}
-                      dot={false}
-                      strokeDasharray="6 6"
-                      name="Shadow %"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
-                  No prediction data returned yet.
-                </div>
-              )}
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-1">
+              <div className="flex justify-between items-start mb-4">
+                <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Observed Fraud Rate</span>
+                <MaterialIcon icon="policy" className="text-outline" />
+              </div>
+              <div className="mt-auto">
+                <span className={`font-headline-lg text-headline-lg ${fraudRate > 5 ? 'text-danger-rose' : 'text-primary'}`}>{fraudRate}%</span>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">{predictions.length} recent predictions sampled</p>
+              </div>
+            </div>
+
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-2">
+              <div className="flex justify-between items-start mb-4">
+                <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Registry Versions</span>
+                <MaterialIcon icon="layers" className="text-outline" />
+              </div>
+              <div className="mt-auto">
+                <span className="font-headline-lg text-headline-lg text-on-surface">{registryCount}</span>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">{registryCount > 0 ? `Latest: v${registrySummary[registryCount - 1].version}` : 'No versions returned'}</p>
+              </div>
+            </div>
+
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-3">
+              <div className="flex justify-between items-start mb-4">
+                <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Latest Confidence</span>
+                <MaterialIcon icon="target" className="text-outline" />
+              </div>
+              <div className="mt-auto">
+                <span className="font-headline-lg text-headline-lg text-on-surface-variant">{latestPrediction ? `${(latestPrediction.confidence * 100).toFixed(1)}%` : 'n/a'}</span>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">{latestPrediction ? `Recorded at ${latestPrediction.label}` : 'Waiting for prediction data'}</p>
+              </div>
+            </div>
+
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-4">
+              <div className="flex justify-between items-start mb-4">
+                <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Last Sync</span>
+                <MaterialIcon icon="sync" className={`text-outline ${loading ? 'animate-spin' : ''}`} />
+              </div>
+              <div className="mt-auto">
+                <span className="font-headline-lg text-headline-lg text-primary">{lastUpdated ? formatTimestamp(lastUpdated.toISOString()) : 'pending'}</span>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">{loading ? 'Refreshing now...' : 'Auto-refresh every 30s'}</p>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-100">Prediction Mix</h2>
-                <p className="mt-1 text-sm text-slate-400">Fraud vs normal decisions in the sampled window</p>
-              </div>
-              <div className="rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-1 text-xs text-rose-200">
-                {fraudRate}% fraud
-              </div>
-            </div>
-            <div className="h-72">
-              {predictions.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={predictionMix}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={65}
-                      outerRadius={100}
-                      paddingAngle={4}
-                    >
-                      {predictionMix.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: '#020617',
-                        border: '1px solid rgba(148, 163, 184, 0.18)',
-                        borderRadius: '14px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
-                  No prediction data returned yet.
-                </div>
-              )}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              {predictionMix.map((item) => (
-                <div key={item.name} className="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
-                  <div className="text-slate-400">{item.name}</div>
-                  <div className="mt-1 text-xl font-semibold text-slate-100">{item.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="animate-fade-in-up animate-fade-in-up-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <h2 className="mb-4 text-lg font-semibold text-slate-100">System Health</h2>
-            
-            {/* Drift Card */}
-            <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-              <div className="mb-2 text-sm text-slate-400">Real-Time Drift</div>
-              <div className="flex items-end gap-4">
+          <div className="mb-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-5 chart-grid">
+              <div className="mb-5 flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-semibold text-slate-100">{driftData?.drift_score?.toFixed(3)}</div>
-                  <div className="text-xs text-slate-500 mt-1">Threshold: {driftData?.threshold}</div>
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface">Prediction Confidence Trend</h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-1">Latest production and shadow confidence values</p>
                 </div>
-                <div className={`mb-1 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wider ${driftData?.status === 'HIGH' ? 'bg-rose-500/20 text-rose-300 border border-rose-400/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'}`}>
-                  {driftData?.status === 'HIGH' ? '🔴 HIGH' : '🟢 LOW'}
-                </div>
+                <MaterialIcon icon="monitoring" className="text-primary/70" />
               </div>
-            </div>
-
-            {/* Retrain Transparency Panel */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-              <div className="mb-2 text-sm text-slate-400">Retrain Pipeline</div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Last Status</span>
-                  <span className={`font-semibold ${retrainStatus?.status === 'failed' ? 'text-rose-400' : 'text-emerald-400 uppercase'}`}>
-                    {retrainStatus?.status || 'IDLE'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Trigger Reason</span>
-                  <span className="text-slate-200">{retrainStatus?.reason || 'None'}</span>
-                </div>
-                {retrainStatus?.top_shifted_feature && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Top Shifted Feature</span>
-                    <span className="text-amber-200">{retrainStatus.top_shifted_feature}</span>
-                  </div>
+              <div className="h-72">
+                {predictionTrendData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={predictionTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#bcc9cd', fontSize: 12, fontFamily: 'JetBrains Mono' }} />
+                      <YAxis tick={{ fill: '#bcc9cd', fontSize: 12, fontFamily: 'JetBrains Mono' }} domain={[0, 100]} />
+                      <Tooltip contentStyle={{ background: '#0F172A', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', color: '#dce1fb' }} itemStyle={{ fontFamily: 'JetBrains Mono', fontSize: '12px' }} />
+                      <Line type="monotone" dataKey="confidence" stroke={CHART_COLORS.production} strokeWidth={2} dot={false} name="Production %" />
+                      <Line type="monotone" dataKey="shadowConfidence" stroke={CHART_COLORS.shadow} strokeWidth={2} strokeDasharray="4 4" dot={false} name="Shadow %" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center border border-dashed border-outline/20 rounded-lg text-on-surface-variant">No data</div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-slate-500">New Model</span>
-                  <span className="text-slate-200">{retrainStatus?.new_model_version || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Last Run</span>
-                  <span className="text-slate-200">{retrainStatus?.timestamp ? formatTimestamp(retrainStatus.timestamp) : 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-100">Model Registry</h2>
-                <p className="mt-1 text-sm text-slate-400">Version control and promotion workflow</p>
               </div>
             </div>
             
-            <div className="mb-4">
-              <div className="text-sm text-slate-400 mb-2">Active Production Model</div>
-              {registrySummary.filter(r => r.status === 'production').map(item => (
-                <div key={item.version} className="flex flex-col gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-lg font-semibold text-emerald-200">v{item.version}</div>
-                    <div className="text-xs text-emerald-200/70">Trigger: {item.triggerReason}</div>
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-5">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface">Prediction Mix</h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-1">Fraud vs normal decisions</p>
+                </div>
+                <div className="rounded-full border border-danger-rose/30 bg-danger-rose/10 px-3 py-1 font-label-md text-label-md text-danger-rose">
+                  {fraudRate}% fraud
+                </div>
+              </div>
+              <div className="h-56">
+                {predictions.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={predictionMix} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="none">
+                        {predictionMix.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: '#0F172A', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', color: '#dce1fb' }} itemStyle={{ fontFamily: 'JetBrains Mono', fontSize: '12px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center border border-dashed border-outline/20 rounded-lg text-on-surface-variant">No data</div>
+                )}
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                {predictionMix.map((item) => (
+                  <div key={item.name} className="bg-surface-container rounded-lg p-3 border border-outline/10 text-center">
+                    <div className="font-label-md text-label-md text-on-surface-variant">{item.name}</div>
+                    <div className="mt-1 font-headline-md text-headline-md text-on-surface">{item.value}</div>
                   </div>
-                  <div className="flex gap-4 text-xs text-emerald-100/80">
-                    <div>AUC-ROC: <span className="font-medium text-emerald-100">{item.aucRoc ?? 'N/A'}</span></div>
-                    <div>F1 Score: <span className="font-medium text-emerald-100">{item.f1 ?? 'N/A'}</span></div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] mb-6">
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-6">
+              <h2 className="font-headline-sm text-headline-sm text-on-surface mb-6">System Health</h2>
+              
+              <div className="bg-surface-container border border-outline/10 rounded-lg p-4 mb-4">
+                <div className="font-label-md text-label-md text-on-surface-variant mb-3">Real-Time Drift</div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="font-headline-lg text-headline-lg text-on-surface font-label-md">{driftData?.drift_score?.toFixed(3)}</div>
+                    <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">Threshold: {driftData?.threshold}</div>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full border font-label-md text-label-md uppercase ${driftData?.status === 'HIGH' ? 'bg-danger-rose/10 border-danger-rose/30 text-danger-rose' : 'bg-success-emerald/10 border-success-emerald/30 text-success-emerald'}`}>
+                    {driftData?.status === 'HIGH' ? 'High Drift' : 'Low Drift'}
                   </div>
                 </div>
-              ))}
-              {registrySummary.filter(r => r.status === 'production').length === 0 && (
-                <div className="text-sm text-slate-500 italic">No active production model found</div>
-              )}
-            </div>
+              </div>
 
-            <div className="space-y-3">
-              <div className="text-sm text-slate-400 mb-2">Available Candidate Models</div>
-              {registrySummary.filter(r => r.status !== 'production').length > 0 ? (
-                registrySummary.filter(r => r.status !== 'production').map((item) => (
-                  <div
-                    key={item.version}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold text-slate-100">v{item.version}</span>
-                        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400 border border-slate-700">{item.status}</span>
-                      </div>
-                      <div className="mt-1 text-xs text-slate-400">Trigger: {item.triggerReason} • {item.trainedLabel}</div>
-                      <div className="mt-2 flex gap-3 text-xs text-slate-300">
-                        <div>AUC-ROC: <span className="font-medium text-cyan-200">{item.aucRoc ?? 'N/A'}</span></div>
-                        <div>F1 Score: <span className="font-medium text-cyan-200">{item.f1 ?? 'N/A'}</span></div>
-                      </div>
+              <div className="bg-surface-container border border-outline/10 rounded-lg p-4">
+                <div className="font-label-md text-label-md text-on-surface-variant mb-4">Retrain Pipeline</div>
+                <div className="space-y-3 font-body-md text-body-md">
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">Last Status</span>
+                    <span className={`font-semibold ${retrainStatus?.status === 'failed' ? 'text-danger-rose' : 'text-success-emerald uppercase'}`}>{retrainStatus?.status || 'IDLE'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">Trigger</span>
+                    <span className="text-on-surface">{retrainStatus?.reason || 'None'}</span>
+                  </div>
+                  {retrainStatus?.top_shifted_feature && (
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Top Shifted Feature</span>
+                      <span className="text-info-cyan font-label-md">{retrainStatus.top_shifted_feature}</span>
                     </div>
-                    {item.status === 'shadow' && (
-                      <button
-                        onClick={handlePromote}
-                        className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/20"
-                      >
-                        Promote v{item.version}
-                      </button>
-                    )}
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">New Model</span>
+                    <span className="text-on-surface">{retrainStatus?.new_model_version || 'N/A'}</span>
                   </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-sm text-slate-500">
-                  No candidate models available.
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">Last Run</span>
+                    <span className="text-on-surface font-label-md">{retrainStatus?.timestamp ? formatTimestamp(retrainStatus.timestamp) : 'N/A'}</span>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="animate-fade-in-up animate-fade-in-up-7 mt-6 grid gap-6 lg:grid-cols-2">
-          {/* Drift History Chart */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="mb-5 flex items-center justify-between">
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-6">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface">Model Registry</h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-1">Version control and promotion workflow</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <div className="font-label-md text-label-md text-on-surface-variant mb-3">Active Production Model</div>
+                {registrySummary.filter(r => r.status === 'production').map(item => (
+                  <div key={item.version} className="bg-success-emerald/10 border border-success-emerald/30 rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="font-headline-sm text-headline-sm text-success-emerald">v{item.version}</div>
+                      <div className="font-label-sm text-label-sm text-success-emerald/80">Trigger: {item.triggerReason}</div>
+                    </div>
+                    <div className="flex gap-6 font-label-md text-label-md text-success-emerald/90">
+                      <div>AUC-ROC: <span className="font-bold">{item.aucRoc ?? 'N/A'}</span></div>
+                      <div>F1 Score: <span className="font-bold">{item.f1 ?? 'N/A'}</span></div>
+                    </div>
+                  </div>
+                ))}
+                {registrySummary.filter(r => r.status === 'production').length === 0 && (
+                  <div className="text-on-surface-variant italic font-body-md text-body-md">No active production model found</div>
+                )}
+              </div>
+
               <div>
-                <h2 className="text-lg font-semibold text-slate-100">Drift Score Over Time</h2>
-                <p className="mt-1 text-sm text-slate-400">Evolution of data distribution divergence</p>
-              </div>
-            </div>
-            <div className="h-72">
-              {driftHistory.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={driftHistory}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                    <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} interval={'preserveStartEnd'} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#020617',
-                        border: '1px solid rgba(148, 163, 184, 0.18)',
-                        borderRadius: '14px',
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="score"
-                      stroke={CHART_COLORS.danger}
-                      strokeWidth={3}
-                      dot={false}
-                      name="Drift Score"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
-                  No drift history available.
+                <div className="font-label-md text-label-md text-on-surface-variant mb-3">Available Candidate Models</div>
+                <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                  {registrySummary.filter(r => r.status !== 'production').length > 0 ? (
+                    registrySummary.filter(r => r.status !== 'production').map((item) => (
+                      <div key={item.version} className="bg-surface-container border border-outline/10 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-headline-sm text-headline-sm text-on-surface">v{item.version}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-surface-variant font-label-sm text-label-sm uppercase text-on-surface-variant border border-outline/20">{item.status}</span>
+                          </div>
+                          <div className="font-label-sm text-label-sm text-on-surface-variant mb-2">Trigger: {item.triggerReason} • {item.trainedLabel}</div>
+                          <div className="flex gap-4 font-label-md text-label-md text-primary">
+                            <div>AUC-ROC: <span className="font-bold">{item.aucRoc ?? 'N/A'}</span></div>
+                            <div>F1 Score: <span className="font-bold">{item.f1 ?? 'N/A'}</span></div>
+                          </div>
+                        </div>
+                        {item.status === 'shadow' && (
+                          <button onClick={handlePromote} className="px-4 py-2 rounded-lg bg-success-emerald/10 border border-success-emerald/30 font-label-md text-label-md text-success-emerald hover:bg-success-emerald/20 transition-colors shrink-0">
+                            Promote v{item.version}
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="border border-dashed border-outline/20 rounded-lg p-6 text-center text-on-surface-variant font-body-md text-body-md">
+                      No candidate models available.
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Confidence Distribution Panel */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-100">Confidence Distribution</h2>
-                <p className="mt-1 text-sm text-slate-400">Density of production model probability scores</p>
               </div>
             </div>
-            <div className="h-72">
-              {predictions.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={confidenceDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
-                    <XAxis dataKey="range" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#020617',
-                        border: '1px solid rgba(148, 163, 184, 0.18)',
-                        borderRadius: '14px',
-                      }}
-                      cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                    />
-                    <Bar dataKey="count" name="Predictions" fill={CHART_COLORS.calm} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
-                  No predictions available yet.
-                </div>
-              )}
-            </div>
           </div>
-        </div>
 
-        <div className="animate-fade-in-up mt-6 rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-100">Results & Performance Impact</h2>
-              <p className="mt-1 text-sm text-slate-400">Analysis of recent drift events and retraining outcomes</p>
-            </div>
-            <Activity className="text-cyan-400/50" size={24} />
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
-              <div className="mb-2 text-sm text-rose-200/70">Phase 1: Concept Drift Detected</div>
-              <div className="text-2xl font-semibold text-rose-200">Amount Distribution Shift</div>
-              <p className="mt-2 text-xs leading-relaxed text-rose-100/60">
-                KL Divergence threshold exceeded. The underlying data distribution shifted significantly from the baseline training set.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
-              <div className="mb-2 text-sm text-amber-200/70">Phase 2: Performance Degradation</div>
-              <div className="text-2xl font-semibold text-amber-200">AUC-ROC Dropped ~15%</div>
-              <p className="mt-2 text-xs leading-relaxed text-amber-100/60">
-                Model confidence scores plummeted as the active production model struggled to classify the out-of-distribution transactions accurately.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-              <div className="mb-2 text-sm text-emerald-200/70">Phase 3: Automated Recovery</div>
-              <div className="text-2xl font-semibold text-emerald-200">Shadow Retrain Triggered</div>
-              <p className="mt-2 text-xs leading-relaxed text-emerald-100/60">
-                System automatically trained a new XGBoost candidate on the latest window, recovering AUC-ROC back to 0.94+ and promoting it to production.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="animate-fade-in-up mt-6 rounded-3xl border border-slate-800 bg-slate-900/70 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-100">Shadow vs Production Comparison</h2>
-              <p className="mt-1 text-sm text-slate-400">Most recent confidence outputs from both models</p>
-            </div>
-          </div>
-          <div className="h-80">
-            {predictionTrendData.some((item) => item.shadowConfidence != null) ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={predictionTrendData.slice(-12)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} domain={[0, 'auto']} />
-                  <Tooltip
-                    contentStyle={{
-                      background: '#020617',
-                      border: '1px solid rgba(148, 163, 184, 0.18)',
-                      borderRadius: '14px',
-                    }}
-                  />
-                  <Bar dataKey="confidence" name="Production %" fill={CHART_COLORS.production} radius={[6, 6, 0, 0]} />
-                  <Bar
-                    dataKey="shadowConfidence"
-                    name="Shadow %"
-                    fill={CHART_COLORS.shadow}
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-700 text-sm text-slate-500">
-                Shadow-model confidence data has not been returned yet.
+          <div className="grid gap-6 lg:grid-cols-2 mb-6">
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-7 chart-grid">
+              <div className="mb-5">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface">Drift Score Over Time</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Evolution of data distribution divergence</p>
               </div>
-            )}
-          </div>
-        </div>
+              <div className="h-72">
+                {driftHistory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={driftHistory}>
+                      <defs>
+                        <linearGradient id="colorDrift" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_COLORS.danger} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={CHART_COLORS.danger} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+                      <XAxis dataKey="label" tick={{ fill: '#bcc9cd', fontSize: 12, fontFamily: 'JetBrains Mono' }} interval="preserveStartEnd" />
+                      <YAxis tick={{ fill: '#bcc9cd', fontSize: 12, fontFamily: 'JetBrains Mono' }} />
+                      <Tooltip contentStyle={{ background: '#0F172A', border: '1px solid rgba(244,63,94,0.2)', borderRadius: '8px', color: '#dce1fb' }} itemStyle={{ fontFamily: 'JetBrains Mono', fontSize: '12px' }} />
+                      <Area type="monotone" dataKey="score" stroke={CHART_COLORS.danger} strokeWidth={2} fillOpacity={1} fill="url(#colorDrift)" name="Drift Score" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center border border-dashed border-outline/20 rounded-lg text-on-surface-variant">No data</div>
+                )}
+              </div>
+            </div>
 
-        <footer className="mt-10 border-t border-slate-800/60 pt-6 pb-4 text-center">
-          <p className="text-xs text-slate-500">
-            Fraud ML System · Drift-Triggered Retraining Pipeline · Built by{' '}
-            <a href="https://github.com/shubhankartiwari99" target="_blank" rel="noopener noreferrer" className="text-cyan-400/70 hover:text-cyan-300 transition">
-              Shubhankar Tiwari
-            </a>
-          </p>
-          <p className="mt-1 text-[11px] text-slate-600">KL Divergence · PSI · Shadow Deployment · Model Registry · Cooldown Logic</p>
-        </footer>
+            <div className="glass-panel p-6 flex flex-col animate-fade-in-up-7 chart-grid">
+              <div className="mb-5">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface">Confidence Distribution</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-1">Density of production model probability scores</p>
+              </div>
+              <div className="h-72">
+                {predictions.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={confidenceDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+                      <XAxis dataKey="range" tick={{ fill: '#bcc9cd', fontSize: 11, fontFamily: 'JetBrains Mono' }} />
+                      <YAxis tick={{ fill: '#bcc9cd', fontSize: 12, fontFamily: 'JetBrains Mono' }} />
+                      <Tooltip contentStyle={{ background: '#0F172A', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '8px', color: '#dce1fb' }} itemStyle={{ fontFamily: 'JetBrains Mono', fontSize: '12px' }} cursor={{fill: 'rgba(255,255,255,0.02)'}} />
+                      <Bar dataKey="count" name="Predictions" fill={CHART_COLORS.calm} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center border border-dashed border-outline/20 rounded-lg text-on-surface-variant">No data</div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <footer className="mt-8 border-t border-outline/10 pt-6 pb-4 text-center">
+             <p className="font-label-md text-label-md text-on-surface-variant">
+              Fraud ML System · Built by <a href="#" className="text-primary hover:underline">Shubhankar Tiwari</a>
+             </p>
+          </footer>
+        </main>
       </div>
-    </div>
+      
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex lg:hidden justify-around items-center py-2 pb-safe bg-surface-container-highest/90 backdrop-blur-xl rounded-t-xl border-t border-outline/20 shadow-lg">
+        <a className="flex flex-col items-center justify-center text-primary font-bold active:bg-surface-variant scale-110 transition-transform duration-150 p-2 rounded-lg" href="#">
+          <MaterialIcon icon="radar" />
+          <span className="font-label-sm mt-1">Live</span>
+        </a>
+        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+          <MaterialIcon icon="inventory_2" />
+          <span className="font-label-sm mt-1">Models</span>
+        </a>
+        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+          <MaterialIcon icon="vital_signs" />
+          <span className="font-label-sm mt-1">Health</span>
+        </a>
+        <a className="flex flex-col items-center justify-center text-on-surface-variant active:bg-surface-variant p-2 rounded-lg" href="#">
+          <MaterialIcon icon="settings" />
+          <span className="font-label-sm mt-1">Settings</span>
+        </a>
+      </nav>
+    </>
   )
 }
